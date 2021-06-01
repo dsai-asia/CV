@@ -1,0 +1,1192 @@
+\documentclass[aspectratio=169]{beamer}
+
+\mode<presentation>
+{
+  \setbeamertemplate{background canvas}[square]
+  \pgfdeclareimage[width=6em,interpolate=true]{dsailogo}{../dsai-logo}
+  \pgfdeclareimage[width=6em,interpolate=true]{erasmuslogo}{../erasmus-logo}
+  \titlegraphic{\pgfuseimage{dsailogo} \hspace{0.2in} \pgfuseimage{erasmuslogo}}
+  %\usetheme{default}
+  \usetheme{Madrid}
+  \usecolortheme{rose}
+  \usefonttheme[onlysmall]{structurebold}
+}
+
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{amsmath,amssymb}
+\usepackage{graphics}
+\usepackage{ragged2e}
+\usepackage[latin1]{inputenc}
+\usepackage{colortbl}
+\usepackage[absolute,overlay]{textpos}
+\setlength{\TPHorizModule}{30mm}
+\setlength{\TPVertModule}{\TPHorizModule}
+\textblockorigin{10mm}{10mm}
+\usepackage[english]{babel}
+\usepackage{listings}
+\setbeamercovered{dynamic}
+
+\AtBeginSection[]{
+  \begin{frame}<beamer>
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\title[Computer Vision]{Computer Vision\\Cameras}
+\author{dsai.asia}
+\institute[]{Asia Data Science and Artificial Intelligence Master's Program}
+\date{}
+
+% My math definitions
+
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\mathtt{#1}}
+\newcommand{\ten}[1]{\mathcal{#1}}
+\renewcommand{\null}[1]{{\cal N}(#1)}
+\def\Rset{\mathbb{R}}
+\def\Pset{\mathbb{P}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\def\norm{\mbox{$\cal{N}$}}
+
+\newcommand{\stereotype}[1]{\guillemotleft{{#1}}\guillemotright}
+
+\newcommand{\myfig}[3]{\centerline{\includegraphics[width={#1}]{{#2}}}
+    \centerline{\scriptsize #3}}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%             CONTENTS START HERE
+
+%\setbeamertemplate{navigation symbols}{}
+
+\frame{\titlepage}
+
+%--------------------------------------------------------------------
+%\part<presentation>{Part name}
+%
+%\frame{\partpage}
+
+\begin{frame}
+\frametitle{Readings}
+
+Readings for these lecture notes:
+\begin{itemize}
+\item[-] Hartley, R., and Zisserman, A. {\em Multiple View Geometry in
+    Computer Vision}, Cambridge University Press, 2004, Chapter 6-8.
+\end{itemize}
+
+These notes contain material $\copyright$ Hartley and Zisserman
+(2004).
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Introduction}
+\framesubtitle{Camera models}
+
+A \alert{camera} maps a 3D \alert{object space} to a 2D \alert{image}.
+
+\medskip
+
+We focus on cameras that perform \alert{central projection}, for which
+there are several \alert{camera models}, each represented by a matrix
+and each a specialization of the \alert{general projective camera}.
+
+\medskip
+
+There are two main kinds of cameras --- those with a \alert{finite center}
+and those with a center \alert{at infinity}.  The main infinite camera
+is the \alert{affine camera}.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Finite cameras}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The basic pinhole model}
+
+The \alert{pinhole camera} uses central projection of points onto a
+plane.
+
+\medskip
+
+The \alert{camera center} or \alert{optical center}, is the center of
+projection and the \alert{origin} of a Euclidean coordinate system.
+
+\medskip
+
+The \alert{image plane} or \alert{focal plane} is the plane $Z=f$.
+
+\medskip
+
+\myfig{4in}{HZ-fig5-1}{Hartley and Zisserman (2004), Fig.\ 6.1}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The basic pinhole model}
+
+A few definitions:
+\begin{itemize}
+\item The \alert{principal axis} is the axis orthogonal to the image
+  plane intersecting the origin.
+\item The \alert{principal point} is the intersection of the principal
+  axis with the image plane.
+\item The \alert{principal plane} is the plane through the camera
+  center parallel to the image plane.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The basic pinhole model}
+
+The transformation from a point in 3-space is just
+\begin{equation*}
+(X,Y,Z)^T \mapsto (fX/Z,fY/Z)^T
+\end{equation*}
+
+\medskip
+
+In homogeneous coordinates, this is a linear transform:
+\begin{equation*}
+\begin{pmatrix} X \\ Y \\ Z \\ 1 \end{pmatrix} \mapsto
+\begin{pmatrix} fX \\ fY \\ Z \end{pmatrix} =
+\begin{bmatrix} f & & & 0 \\ & f & & 0 \\ & & 1 & 0 \end{bmatrix}
+\begin{pmatrix} X \\ Y \\ Z \\ 1 \end{pmatrix}.
+\end{equation*}
+
+\medskip
+
+We write this compactly as
+\begin{equation*}
+\vec{x}=\mat{P}\vec{X}
+\end{equation*}
+
+\medskip
+
+where
+\begin{equation*}
+\mat{P} = \text{diag}(f,f,1)
+\begin{bmatrix} \mat{I} \mid \vec{0} \end{bmatrix}.
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The pinhole model: non-zero principal point}
+
+If the coordinate system in the image plane is not centered at the
+principal point, we write
+\begin{equation*}
+(X,Y,Z)^T \mapsto (fX/Z+p_x,fY/Z+p_y)^T
+\end{equation*}
+
+where $(p_x,p_y)^T$ are the coordinates of the principal point.
+
+\medskip
+
+\myfig{2in}{HZ-fig5-2}{Hartley and Zisserman (2004), Fig.\ 6.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The pinhole model: camera calibration matrix}
+
+Now we write the transformation as
+\begin{equation*}
+\vec{x} = \mat{K}
+\begin{bmatrix} \mat{I} \mid \vec{0} \end{bmatrix}
+\vec{X}_{\text{cam}}.
+\end{equation*}
+
+where $\mat{K}$, called the \alert{camera calibration matrix} is
+\begin{equation*}
+\mat{K} = \begin{bmatrix} f & & p_x \\ & f & p_y \\ & & 1
+\end{bmatrix}
+\end{equation*}
+
+\medskip
+
+The notation $\vec{X}_{\text{cam}}$ emphasizes that $\vec{X}$ is a 3D
+point in the \alert{camera coordinate frame}.
+
+\medskip
+
+The camera coordinate frame is a coordinate system whose origin is at
+the camera center and whose $Z$ axis is the principal axis of the
+camera.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The basic pinhole model: rotation and translation}
+
+Now suppose our camera is rotated and translated with respect to a
+\alert{world coordinate frame}:
+
+\medskip
+
+\myfig{4in}{HZ-fig5-3}{Hartley and Zisserman (2004), Fig.\ 5.3}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{The pinhole model with rotation and translation}
+
+Suppose the 3D point $\tilde{\vec{C}}$ is the camera center in the
+world coordinate frame.  Then we write
+\begin{equation*}
+\vec{X}_{\text{cam}} = \begin{bmatrix} \mat{R} & -\mat{R}\tilde{\vec{C}}
+\\ \vec{0}^T & 1 \end{bmatrix} \begin{pmatrix} X \\ Y \\ Z \\ 1
+\end{pmatrix} = \begin{bmatrix} \mat{R} & -\mat{R}\tilde{\vec{C}} \\
+\vec{0}^T & 1 \end{bmatrix} \vec{X}.
+\end{equation*}
+
+\medskip
+
+Putting the rigid transformation together with the camera projection
+gives us
+\begin{equation*}
+\vec{x} = \mat{K}\mat{R}\begin{bmatrix} \mat{I} \mid -\tilde{\vec{C}}
+\end{bmatrix} \vec{X}
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{General pinhole camera}
+
+We write the \alert{general pinhole camera}
+\begin{equation*}
+\mat{P}=\mat{K}\mat{R}[\mat{I}\mid -\tilde{\vec{C}}],
+\end{equation*}
+a matrix with 9 degrees of freedom (6 for the rigid transform, two for
+the principal point, and 1 for the \alert{focal length} $f$).
+
+\medskip
+
+The matrix $\mat{K}$ is said to contain the \alert{intrinsic
+  parameters} of the camera.
+
+\medskip
+
+$\mat{R}$ and $\tilde{\vec{C}}$ are the \alert{extrinsic parameters}
+of the camera.
+
+\medskip
+
+Usually we don't bother to make the camera center explicit and write
+\begin{equation*}
+\mat{P}=\mat{K}[\mat{R}\mid \vec{t}]
+\end{equation*}
+where $\vec{t}=-\mat{R}\tilde{\vec{C}}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{General finite projective cameras}
+
+On real-world cameras such as CCDs, the sensor cells may not be
+square, so we define a \alert{separate horizontal and vertical focal
+  length} $\alpha_x$ and $\alpha_y$.
+
+\medskip
+
+For added generality, we can consider camera where the horizontal and
+vertical axis are not orthogonal, introducing a \alert{skew} parameter
+$s$.
+
+\medskip
+
+With these modifications, we have the \alert{general finite projective
+camera}
+\begin{equation*}
+K = 
+\begin{bmatrix}
+\alpha_x & s & x_0 \\ & \alpha_y & y_0 \\ & & 1
+\end{bmatrix}.
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Finite cameras}
+\framesubtitle{General finite projective cameras}
+
+The general finite projective camera $\mat{P}=\mat{K}[\mat{R}
+\mid \vec{t}]$, then, has 11 degrees of freedom: 6 for the rigid
+transform, 2 for the principal point, 2 for the focal lengths, and 1
+for the skew.
+
+\medskip
+
+11 is also the number of DOF in a homogeneous rank 3 $3\times 4$
+matrix.
+
+\medskip
+
+Some properties of general finite cameras:
+\begin{itemize}
+\item Since $\mat{R}$ is orthogonal and $\mat{K}$ is necessarily
+  invertible, the left $3\times 3$ submatrix $\mat{M}$ of $\mat{P}$
+  must be non-singular.
+\item Any $3\times 4$ matrix $\mat{P}$ with non-singular left-hand
+  $3\times 3$ submatrix $\mat{M}$ can be written in the form
+  $\mat{K}[\mat{R} \mid \vec{t}]$ using the RQ factorization.
+\item The set of finite projective cameras is identical to the set of
+  $3\times 4$ matrices with non-singular left $3\times 3$ submatrices.
+\end{itemize}
+
+\medskip
+
+If we remove the restriction that the left submatrix must be
+non-singular (but keep the restriction that $\mat{P}$ is rank 3), we
+obtain the \alert{general projective camera}.  We now consider its
+properties.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{General cameras}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Camera center}
+
+The general projective camera $\mat{P}$ maps $\vec{x}=\mat{P}\vec{X}$.
+
+\medskip
+
+We divide $\mat{P}$ into blocks as $\mat{P}=[\mat{M} \mid \vec{p}_4]$.
+
+\medskip
+
+If $\mat{P}$ is rank 3, it has a 1-D right null space generated by the
+4-vector $\vec{C}$, with $\mat{P}\vec{C}=0$.
+
+\medskip
+
+$\vec{C}$ represents the \alert{camera center} in homogeneous
+coordinates, i.e., the point in $\Pset^3$ mapped to $\vec{0}$.
+
+\medskip
+
+If $\vec{C}$ is a \alert{finite} point in $\Pset^3$, i.e., $C_4 \not=
+0$, the camera is \alert{finite}; otherwise, the camera center is a
+\alert{point at infinity}, and the camera is said to be
+\alert{infinite}.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Columns of $\mat{P}$}
+
+We obtain many other properties from the projective geometry of
+$\mat{P}$.  Its \alert{first three columns} represent the vanishing
+points in the image of the world-coordinate $X$, $Y$, and $Z$ axes.
+
+\medskip
+
+\myfig{4in}{HZ-fig5-4}{Hartley and Zisserman, Fig.\ 6.4}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Rows of $\mat{P}$}
+
+The \alert{rows} of $\mat{P}$ represent planes in $\Rset^3$:
+\begin{itemize}
+\item The \alert{third row} is the \alert{principal plane} (the plane
+  through the camera center parallel to the image plane).
+\item The \alert{first and second rows} represent the $\Rset^3$ plane
+  corresponding to the lines $x=0$ and $y=0$ in the image,
+  respectively.
+\end{itemize}
+
+\medskip
+
+\myfig{3.6in}{HZ-fig5-5}{Hartley and Zisserman, Fig.\ 6.5}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Principal point and principal axis}
+
+The \alert{third row} $\vec{m}^{3T}$ of $\mat{M}$ gives the
+\alert{direction of the principal axis}.
+
+\medskip
+
+The \alert{principal point} is $\vec{x}_0=\mat{M}\vec{m}^3$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Backprojection}
+
+The \alert{backprojection} of an image point $\vec{x}$ is the set
+of points in $\Rset^3$ mapping to that point.
+
+\medskip
+
+To find the backprojection, we use the pseudoinverse:
+\begin{equation*}
+\vec{X}(\lambda) = \mat{P}^+\vec{x} + \lambda\vec{C}
+\end{equation*}
+
+\medskip
+
+(Recall that the line between two points in $\Rset^3$ is just the span
+of the two points in $\Pset^3$.)
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Point depth}
+
+If we have a camera matrix $[\mat{M} \mid \vec{p}_4]$ and project the
+point $\vec{X}=(X,Y,Z,1)^T$ to $\vec{x}=\mat{P}\mat{X}=w(x,y,1)^T$,
+we obtain $w=\vec{m}^{3T}(\vec{X}-\tilde{\vec{C}})$,
+
+\medskip
+
+$w$ is the dot product of the ray $\vec{X}-\tilde{\vec{C}}$ with
+the principal ray direction.
+
+\medskip
+
+If we normalize so that $\det \mat{M} > 0$ and
+$\|\vec{m}^3\|=1$, then $w$ is the \alert{depth} of the point
+$\vec{X}$ from the camera center $\vec{C}$ in the direction of the
+principal ray.
+
+\medskip
+
+\myfig{2in}{HZ-fig5-6}{Hartley and Zisserman, Fig.\ 6.6}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Point depth}
+
+In general, this means we can also write, given $\vec{X}=(X,Y,Z,T)^T$,
+$\mat{P}=[\mat{M}\mid \vec{p}_4]$, and $\mat{P}\vec{X}=w(x,y,1)^T$,
+that
+\begin{equation*}
+\text{depth}(\vec{X};\mat{P}) = \frac{\text{sign}(\det
+\mat{M})w}{T\|\vec{m}^3\|}
+\end{equation*}
+
+\medskip
+
+This can be a convenient way to test if an arbitrary point $\vec{X}$
+is in front of an arbitrary camera $\mat{P}$ or not.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Decomposing $\mat{P}$}
+
+If $\mat{P}$ is a camera, we will often want to \alert{decompose} it
+to obtain the \alert{intrinsic} and \alert{extrinsic} parameters
+explicitly.
+
+\medskip
+
+To find the \alert{camera center} $\vec{C}$, we just obtain the
+\alert{right null vector} of $\mat{P}$ as the last column of $\mat{V}$
+in the SVD $\mat{U}\mat{D}\mat{V}^T = \mat{P}$.
+
+\medskip
+
+If $\mat{P}$ is a \alert{finite camera}, then $\mat{M}$ is
+non-singular, and we can find $\mat{K}\mat{R}=\mat{M}$ using the
+\alert{RQ decomposition}.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{General cameras}
+\framesubtitle{Decomposing $\mat{P}$: Matlab code}
+
+{\scriptsize
+\begin{lstlisting}[language=matlab]
+function [C,T,R,K] = decompose(P)
+  % Extract camera geometry from finite camera matrix P
+  [U,D,V]=svd(P);
+  C = V(1:3,4)/V(4,4);
+  [K,R] = rq(P(:,1:3));
+  K = K/K(3,3);
+  % If focal lengths come out negative, fix them
+  fix_t = eye(3);
+  if K(1,1) < 0, fix_t(1,1) = -1; end
+  if K(2,2) < 0, fix_t(2,2) = -1; end
+  K = K * fix_t;
+  R = fix_t * R;
+  % If R is oriented backwards, fix it
+  if det(R) < 0
+    R = -R;
+  end;
+  T = -R*C;
+end
+\end{lstlisting}
+
+(Based on code by Rassarin Chinnachodteeranun, 2007)}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Decomposing $\mat{P}$}
+
+The resulting calibration matrix $\mat{K}$ will have the form
+\begin{equation*}
+\mat{K}=\begin{bmatrix}
+\alpha_x & s & x_0 \\ 0 & \alpha_y & y_0 \\ 0 & 0 & 1 \end{bmatrix}
+\end{equation*}
+
+\medskip
+
+The \alert{skew} $s$ will normally be 0 for a real camera.
+
+\medskip
+
+$s$ can turn out to be non-zero under some transformations, e.g.\ when
+a \alert{rectifying homography} $\mat{H}$ is applied to a real image
+and we re-decompose the effective camera matrix $\mat{H}\mat{P} =
+\mat{K}[\mat{R} \mid \vec{t}]$.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Decomposing $\mat{P}$}
+
+The camera matrix $\mat{P}$ can be thought of as the \alert{composition} of a
+$4\times 4$ homography, a projection from $\Pset^3$ to $\Pset^2$,
+followed by a $3\times 4$ homography:
+\begin{equation*}
+\mat{P} = \mat{H}_{3\times 3} \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 &
+0 & 0 \\ 0 & 0 & 1 & 0 \end{bmatrix} \mat{H}_{4\times 4}.
+\end{equation*}
+
+\medskip
+
+For \alert{real-world} cameras, the homographies will be
+\alert{Euclidean}, but in practice we will allow general
+projectivities, and this will be useful at times.
+
+\medskip
+
+Cameras at infinity are those for which $\mat{M}$ is singular.  They
+may be divided into \alert{affine} cameras and \alert{non-affine}
+cameras.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{General cameras}
+\framesubtitle{Other cameras}
+
+There are four varieties of affine camera with different constraints
+on the form of $\mat{M}$:
+\begin{itemize}
+\item Orthographic projection
+\item Weak perspective
+\item General affine.
+\end{itemize}
+See text for details.  We won't use them but they are useful in some
+3D reconstruction methods.
+
+\medskip
+
+There are other kinds of cameras not fitting our model, such as the
+line camera.  See text for details.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Computing $\mat{P}$}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Why estimate $\mat{P}$?}
+
+In many applications, we need to determine the camera matrix $\mat{P}$
+that produced a given image.
+\begin{itemize}
+\item In \alert{camera calibration}, we have a set of correspondences
+  $\vec{x}_i \leftrightarrow \vec{X}_i$ and want to calculate
+  $\mat{P}$ from the correspondences.
+\item In \alert{restricted camera estimation} we have $\vec{x}_i
+  \leftrightarrow \vec{X}_i$ and some prior knowledge about $\mat{P}$,
+  for example that it is a pinhole camera or that the skew is 0, and
+  want to find the best $\mat{P}$ meeting these constraints.
+\end{itemize}
+
+\medskip
+
+Normally in vision algorithms we assume a true projective camera
+(linear in homogeneous coordinates).
+
+\medskip
+
+This is invalid when we have \alert{lens distortion}, so we need
+techniques to deal with distortion also.
+
+\medskip
+
+In any case, once we have $\mat{P}$ we can obtain $\mat{K}$,
+$\mat{R}$, and $\tilde{\vec{C}}$ using RQ decomposition and the SVD,
+as already discussed.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{DLT for $\mat{P}$}
+
+We first derive the \alert{linear solution} (the DLT) for $\mat{P}$.
+
+\medskip
+
+The problem, to find, given a set of correspondences $\vec{X}_i
+\leftrightarrow \vec{x}_i$, is very similar to the DLT for
+\alert{homography estimation}.
+
+\medskip
+
+From the relation $\vec{x}_i = \mat{P}\vec{X}_i$ we derive
+\begin{equation}
+\begin{bmatrix}
+\vec{0}^T & -w_i\vec{X}_i^T & y_i\vec{X}_i^T \\
+w_i\vec{X}_i^T & \vec{0}^T & -x_i\vec{X}_i^T \\
+-y_i\vec{X}_i^T & x_i\vec{X}_i^T & \vec{0}^T
+\end{bmatrix}
+\begin{pmatrix} \vec{P}^1 \\ \vec{P}^2 \\ \vec{P}^3 \end{pmatrix} =
+\vec{0}.
+\end{equation}
+
+\medskip
+
+As before, the 3 equations are \alert{linearly dependent}, so we only
+use the \alert{first two equations} (as long as $w_i\not=0$).
+
+\medskip
+
+We stack our $2n$ equations to obtain the linear system
+$\mat{A}\vec{p}=\vec{0}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{DLT for $\mat{P}$}
+
+Since we have 11 DOF, we can obtain an \alert{exact solution} from
+$5\frac{1}{2}$ correspondences (2 equations for each of 5
+        correspondences and 1 for a
+6th correspondence) so long as the points are in general
+position.\footnote{In the case of $\mat{P}$ estimation, degeneracy
+occurs if the camera and 3D points lie on a twisted cubic or the
+points lie on the union of a plane and a straight line through the
+camera center.}
+
+\medskip
+
+The solution, as it was with $\mat{H}$, is just the 1-D right null
+space of $\mat{A}$.
+
+\medskip
+
+In the \alert{over-determined} case we can minimize the
+\alert{algebraic error} $\|\mat{A}\vec{p}\|$ subject to $\|\vec{p}\|$
+by taking the last column of $\mat{V}$ in the SVD
+$\mat{U}\mat{D}\mat{V}^T=\mat{A}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{DLT for $\mat{P}$}
+
+As in homography estimation, \alert{data normalization} is crucial for
+linear minimization of algebraic error:
+\begin{itemize}
+\item As before, we perform isotropic scaling so that the image points
+  have mean $\vec{0}$ and average distance $\sqrt{2}$ from the origin.
+\item For the 3D points, we do the same, so that the average distance
+  from the origin is $\sqrt{3}$.
+\end{itemize}
+
+\medskip
+
+The DLT for $\mat{P}$ is thus identical to the DLT for $\mat{H}$
+except for the slightly different construction of the matrix
+$\mat{A}$.
+
+\medskip
+
+The DLT for $\mat{P}$ can easily be extended to work with line
+correspondences instead of point correspondences (see text).
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Gold Standard algorithm for $\mat{P}$}
+
+As before, we like the normalized DLT due to its simplicity and
+stability but we prefer an \alert{optimal solution} according to
+\alert{maximum likelihood estimation}.
+
+\medskip
+
+Under the assumption of \alert{perfect measurement} of 3D points
+$\vec{X}_i$ and \alert{Gaussian errors} in the image, we obtain the
+maximum likelihood estimate of $\mat{P}$:
+\begin{equation*}
+\hat{\mat{P}} = \argmin_{\mat{P}} \sum_i
+d(\vec{x}_i,\mat{P}\vec{X}_i)^2
+\end{equation*}
+
+\medskip
+
+Once again, the minimization is a nonlinear least squares problem
+which can be solved iteratively by Levenberg-Marquardt.  This leads to
+the Gold Standard algorithm for estimation of $\mat{P}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Gold Standard for $\mat{P}$}
+
+Here is the full Gold Standard algorithm for computing $\mat{P}$ when
+world points $\vec{X}_i$ are accurately known (Hartley and Zisserman,
+2004, Algorithm 7.1).
+
+\medskip
+
+\begin{block}{Gold Standard algorithm for $\mat{P}$: Objective}
+Given $n \ge 6$ world to image point correspondences $\{\vec{X}_i
+\leftrightarrow \vec{x}_i \}$, determine the maximum likelihood
+estimate of $\mat{P}$ minimizing $\sum_i
+d(\vec{x}_i,\mat{P}\vec{X}_i)^2$.
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Gold Standard for $\mat{P}$}
+
+\begin{block}{Gold Standard algorithm for $\mat{P}$: Algorithm}
+\begin{itemize}
+\item[(i)] {\bf Normalization:} Compute similarity transforms
+  $\mat{T}$ and $\mat{U}$ normalizing $\{\vec{x}_i\}$ and
+  $\{\vec{X}_i\}$ then compute $\tilde{\vec{x}}_i=\mat{T}\vec{x}_i$
+  and $\tilde{\vec{X}}_i=\mat{U}\vec{X}_i$.
+\item[(ii)] {\bf Linear solution}: use the DLT approach to solve the
+  linear system in Eq.\ 1 and obtain the $\tilde{\mat{P}}_0$ minimizing
+  algebraic error.
+\item[(iii)] {\bf Geometric error minimization}: Beginning from
+  $\tilde{\mat{P}}_0$, use Levenberg-Marquardt to find a new estimate
+  $\tilde{\mat{P}}$ minimizing \[ \sum_i
+  d(\tilde{\vec{x}}_i,\tilde{\mat{P}}\tilde{\mat{X}}_i)^2.\]
+\item[(iv)] {\bf Denormalization}: The camera matrix for the original
+  (unnormalized) coordinates is obtained from $\tilde{\mat{P}}$ as
+  \[ \mat{P}=\mat{T}^{-1}\tilde{\mat{P}}\mat{U}. \]
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Camera calibration}
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig6-1}{Hartley and Zisserman (2004), Fig.\ 7.1}
+\column{2.5in}
+\parbox{2.4in}
+
+We require a set of accurate 3D points \alert{not on the same plane}.
+
+\medskip
+
+Hartley and Zisserman got 197 corners with these steps:
+\begin{itemize}
+\item[(i)] Canny edge detection
+\item[(ii)] Straight line fitting
+\item[(iii)] Intersecting the lines to obtain the imaged corners
+\end{itemize}
+
+The pixel measurement accuracy was within 0.1 pixel.
+
+\medskip
+
+The error $\sum_i
+d(\tilde{\vec{x}}_i,\tilde{\mat{P}}\tilde{\vec{X}}_i)^2$ was 0.365 for
+DLT only and 0.364 for the full Gold Standard algorithm.
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Camera calibration: Other approaches}
+
+If there is \alert{error in the 3D measurements}, similar to
+computation of $\mat{H}$, we
+\begin{itemize}
+\item \alert{Simultaneously} estimate
+$\hat{\vec{X}}_i$ and $\hat{\vec{x}}_i$ with $\hat{\vec{x}}_i =
+\mat{P}\hat{\vec{X}}_i$
+\item Use a \alert{Mahalanobis distance} error measure reflecting our
+  uncertainty in the measurements and the different units in image and
+  3D coordinates.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Camera calibration: Other approaches}
+
+A \alert{planar} calibration object can be used if \alert{multiple
+  images} are used.
+
+\medskip
+
+\begin{columns}
+\column{2.5in}
+\myfig{2.4in}{calib-image}{}
+\column{2in}
+\myfig{1.9in}{matlab-toolbox}{(From the Caltech toolbox Web site)}
+\end{columns}
+
+The \alert{Caltech Camera Calibration Toolbox for Matlab}
+({\scriptsize
+  \url{http://www.vision.caltech.edu/bouguetj/calib_doc/}}) is highly
+recommended.  It extracts corners automatically and models
+radial distortion.  It is part of OpenCV also.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Restricted camera estimation}
+
+If you do \alert{unconstrained} camera calibration, you'll get
+non-zero skew estimates and principal point estimates not at the
+center of the image.
+
+\medskip
+
+But sometimes we want to assume things like
+\begin{itemize}
+\item The skew $s=0$
+\item The pixels are square ($\alpha_x=\alpha_y$)
+\item The principal point $(x_0,y_0)$ is known
+\item $\mat{K}$ is completely known
+\end{itemize}
+
+\medskip
+
+These problems can be solved by obtaining the unrestricted camera with
+DLT then proceeding with a \alert{restricted parameterization} using
+Levenberg-Marquardt.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computing $\mat{P}$}
+\framesubtitle{Restricted camera estimation}
+
+See text for more efficient procedures for algebraic minimization with
+the common \alert{9-parameter case} of $s=0,\alpha_x=\alpha_y$.
+
+\medskip
+
+Hartley and Zisserman's experiments with 9-parameter restricted camera
+estimation obtained a residual of 0.601, compared to 0.364 for
+unrestricted estimation.
+
+\medskip
+
+We see that \alert{less flexibility} in the model means \alert{higher
+  error}, but probably values \alert{closer to the truth}.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Radial distortion}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Lens distortion}
+
+\alert{Cheap lenses} (especially wide-angle lenses) introduce
+significant \alert{distortion} into the image, so that the
+\alert{linear pinhole model no longer holds}.
+
+\bigskip
+
+\myfig{4in}{HZ-fig6-5}{Hartley and Zisserman (2005), Fig.\ 6.5}
+
+\medskip
+
+To obtain accurate 3D information, we want to \alert{correct for
+  distortion} such as radial distortion.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Mathematical model}
+
+Assume we have a point $\vec{X}_{\text{cam}}$ in camera coordinates.
+Without distortion we have a corresponding \alert{ideal image point}
+$(\tilde{x},\tilde{y},1)^T=\mat{K}[\mat{I} \mid
+\vec{0}]\vec{X}_{\text{cam}}$.
+
+\medskip
+
+We model \alert{radial distortion} by a radial displacement
+\begin{equation*}
+\begin{pmatrix} x_d \\ y_d \end{pmatrix} =
+\begin{pmatrix} x_c \\ y_c \end{pmatrix} +
+L_d(\tilde{r}) \begin{pmatrix} \tilde{x}-x_c \\ \tilde{y}-y_c \end{pmatrix}
+\end{equation*}
+where
+\begin{itemize}
+\item $(\tilde{x},\tilde{y})$ is point's \alert{ideal image position}
+\item $(x_c,y_c)$ is the \alert{center of distortion}
+\item $(x_d,y_d)$ is the \alert{actual image position} after distortion
+\item $\tilde{r}$ is the \alert{distance} $\sqrt{\tilde{x}^2+\tilde{y}^2}$
+  from the \alert{center} of radial distortion
+\item $L_d(\tilde{r})$ is a distortion function, nonlinear in $\tilde{r}$
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Correcting for distortion}
+
+If we \alert{know the distortion parameters}, we can \alert{correct}
+the distortion by applying an \alert{undistortion function}
+\begin{equation*}
+\begin{matrix}
+\hat{x} = x_c + L_u(r_d) (x_d-x_c),
+&
+\hat{y} = y_c + L_u(r_d) (y_d-y_c)
+\end{matrix}
+\end{equation*}
+where $(x_d,y_d)$ are the \alert{measured} coordinates,
+$(\hat{x},\hat{y})$ are the \alert{corrected} coordinates,
+$(x_c,y_c)$ is the \alert{center of radial distortion}, and $r_d^2 =
+(x_d-x_c)^2+(y_d-y_c)^2$.
+
+\medskip
+
+Note that the inverse distortion function
+$L_u(r) = 1/L_d(\tilde{r})$, but depending on the form of $L_d(\tilde{r})$,
+finding $\tilde{r}$ corresponding to $r$ may not be easy.
+
+\medskip
+
+The corrected coordinates $(\hat{x},\hat{y})$ will obey a
+\alert{linear} projective camera model.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Even-order polynomail model}
+
+The most commonly used model is the
+\alert{even-order polynomial model}
+\begin{equation*}
+L_u(r_d) = 1+\lambda_1 r^2_d+\lambda_2 r^4_d+\lambda_3 r^6_d+\ldots \; .
+\end{equation*}
+
+$x_c, y_c, \lambda_1, \lambda_2, \lambda_3, \ldots$
+are the \alert{distortion parameters}, which
+must be estimated from image measurements.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Division model}
+
+There have been objections to the even-order polynomial model.
+
+\medskip
+
+According to some researchers, the model performs well for
+small distortion, but for \alert{severe distortion}, a
+\alert{prohibitively large
+number of non-zero distortion parameters} are required.
+
+\medskip
+
+Fitzgibbon proposes an alternative model, the
+\alert{division model}, as a more accurate approximation to the
+typical camera's true distortion function:
+
+\begin{equation*}
+L_u(r_d) = \frac{1}{1+\lambda_1 r^2_d+\lambda_2 r^4_d+\ldots}
+\end{equation*}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Example (polynomial model)}
+
+An example of estimating the \alert{polynomial model}
+distortion parameters using a cost
+function based on the \alert{straightness of imaged scene lines}:
+
+\medskip
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig6-6a}{Image with radial distortion.}
+\column{2in}
+\myfig{1.9in}{HZ-fig6-6b}{Undistorted version.}
+\end{columns}
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 6.6}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Example (division model)}
+
+An example of estimating the \alert{single-parameter division model}
+based on automatic extraction and correction of
+\alert{circular arcs} (distorted straight lines):
+
+\medskip
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{DistortedImage1}{Image with radial distortion.}
+\column{2in}
+\myfig{1.9in}{UndistortedImage1}{Undistorted version.}
+\end{columns}
+\medskip
+\centerline{\scriptsize \begin{minipage}{4in}
+  Bukhari, F. and Dailey, M.N, Automatic Radial Distortion from a Single
+  Image, \textit{Journal of Mathematical Imaging and Vision},
+  45(1): 31-45, 2013.
+  The distorted image is taken from
+  \texttt{http://www.andromeda.com/people/ddyer/photo/ wideangle.html}
+  \end{minipage}}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Example (division model)}
+
+Another example from Faisal's work:
+
+\medskip
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{DistortedImage2}{Image with radial distortion.}
+\column{2in}
+\myfig{1.9in}{UndistortedImage2}{Undistorted version.}
+\end{columns}
+\medskip
+\centerline{\scriptsize \begin{minipage}{4in}
+    The distorted image is taken from
+    \texttt{http://www.flickr.com/photos/eirikso/with/ 3105820062/}
+    \end{minipage}}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radial distortion}
+\framesubtitle{Conclusion}
+
+Hartley and Zisserman found that the residuals in their camera
+calibration experiment dropped from 0.364 (unrestricted) and 0.601
+(restricted) to 0.179 (unrestricted) and 0.380 (restricted) after
+radial distortion correction.
+
+\medskip
+
+This improvement is for a camera with \alert{minimal} distortion.  On
+cheap cameras (e.g.\ Web cameras) \alert{correcting radial distortion
+  is critical}.
+
+\medskip
+
+The Caltech toolbox automatically implements the polynomial
+model, automatically
+finding the distortion parameters along with estimation of $\mat{P}$.
+
+\medskip
+
+The toolbox can \alert{undistort a given series} of images or
+\alert{output an undistortion lookup table} that you can plug into
+your own system.
+
+\medskip
+
+The toolbox is not entirely plug-and-play!  You must understand the
+image formation process and camera model, and you must ensure your
+measurements $\vec{X}_i$ and $\vec{x}_i$ are as accurate as possible.
+
+\end{frame}
+
+\end{document}
+

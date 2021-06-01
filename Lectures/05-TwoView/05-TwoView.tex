@@ -1,0 +1,2528 @@
+\documentclass[aspectratio=169]{beamer}
+
+\mode<presentation>
+{
+  \setbeamertemplate{background canvas}[square]
+  \pgfdeclareimage[width=6em,interpolate=true]{dsailogo}{../dsai-logo}
+  \pgfdeclareimage[width=6em,interpolate=true]{erasmuslogo}{../erasmus-logo}
+  \titlegraphic{\pgfuseimage{dsailogo} \hspace{0.2in} \pgfuseimage{erasmuslogo}}
+  %\usetheme{default}
+  \usetheme{Madrid}
+  \usecolortheme{rose}
+  \usefonttheme[onlysmall]{structurebold}
+}
+
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{amsmath,amssymb}
+\usepackage{graphics}
+\usepackage{ragged2e}
+\usepackage[latin1]{inputenc}
+\usepackage{colortbl}
+\usepackage[absolute,overlay]{textpos}
+\setlength{\TPHorizModule}{30mm}
+\setlength{\TPVertModule}{\TPHorizModule}
+\textblockorigin{10mm}{10mm}
+\usepackage[english]{babel}
+\usepackage{listings}
+\setbeamercovered{dynamic}
+
+\AtBeginSection[]{
+  \begin{frame}<beamer>
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\title[Computer Vision]{Computer Vision\\Two-View Geometry}
+\author{dsai.asia}
+\institute[]{Asia Data Science and Artificial Intelligence Master's Program}
+\date{}
+
+% My math definitions
+
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\mathtt{#1}}
+\newcommand{\ten}[1]{\mathcal{#1}}
+\newcommand{\crossmat}[1]{\begin{bmatrix} #1 \end{bmatrix}_{\times}}
+\renewcommand{\null}[1]{{\cal N}(#1)}
+\def\Rset{\mathbb{R}}
+\def\Pset{\mathbb{P}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\def\norm{\mbox{$\cal{N}$}}
+
+\newcommand{\stereotype}[1]{\guillemotleft{{#1}}\guillemotright}
+
+\newcommand{\myfig}[3]{\centerline{\includegraphics[width={#1}]{{#2}}}
+    \centerline{\scriptsize #3}}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%             CONTENTS START HERE
+
+%\setbeamertemplate{navigation symbols}{}
+
+\frame{\titlepage}
+
+%--------------------------------------------------------------------
+%\part<presentation>{Part name}
+%
+%\frame{\partpage}
+
+\begin{frame}
+\frametitle{Readings}
+
+Readings for these lecture notes:
+\begin{itemize}
+\item[-] Hartley, R., and Zisserman, A. {\em Multiple View Geometry in
+    Computer Vision}, Cambridge University Press, 2004, Chapter 9--12,
+  18.
+\item[-] Lowe, D.G. Distinctive image features from scale-invariant
+  keypoints.  {\em International Journal of Computer Vision} 2(60):
+  91--110, 2004.
+\end{itemize}
+
+These notes contain material $\copyright$ Hartley and Zisserman
+(2004) and Lowe (2004).
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Introduction}
+\framesubtitle{The geometry of 2 views}
+
+In this part we consider three problems:
+\begin{itemize}
+\item Given a point $\vec{x}$ in one view of a scene, how is the
+  position of the \alert{corresponding point} $\vec{x}_i$ in a second
+  view constrained?
+\item Given a set of corresponding points in two images, what are the
+  \alert{cameras} $\mat{P}$ and $\mat{P}'$?
+\item Given corresponding points in two images and the cameras
+  $\mat{P}$ and $\mat{P}'$, what are the points' \alert{positions in 3
+    space}?
+\end{itemize}
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Epipolar geometry and the fundamental matrix}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Introduction to epipolar geometry}
+
+The \alert{epipolar geometry} is the projective geometry between two
+views.  It only depends on the cameras' internal parameters and the
+relative pose of the two cameras.
+
+\medskip
+
+The \alert{fundamental matrix} is a $3\times 3$ rank 2 matrix
+$\mat{F}$ capturing this geometry.
+
+\medskip
+
+We will see that for any point $\vec{X}\in\Rset^3$, if $\vec{X}$ is
+imaged as $\vec{x}$ in view 1 and $\vec{x}'$ in view 2, the image
+points will satisfy $\vec{x}^{\prime T}\mat{F}\vec{x}=0$.
+
+\medskip
+
+Why do we care about $\mat{F}$?
+\begin{itemize}
+\item Given \alert{point correspondences}, we can compute $\mat{F}$ in
+  a manner similar to computing $\mat{H}$.
+\item Given $\mat{F}$, we can \alert{recover the cameras} $\mat{P}$
+  and $\mat{P}'$, up to a projectivity.
+\item If we know $\mat{K}$ and $\mat{K}'$, we can also retrieve the
+  \alert{Euclidean motion} of the camera between the views, with
+  ambiguity about the scale and absolute reference frame.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Epipolar planes}
+
+The \alert{baseline} is the line joining two camera centers.
+
+\medskip
+
+The baseline is the axis for a pencil of planes called \alert{epipolar
+planes}.
+
+\medskip
+
+When we have a point $\vec{X}$ in $\Rset^3$ imaged as $\vec{x}$ and
+$\vec{x}'$ in two views, we can see that $\vec{X}$, $\vec{x}$,
+$\vec{x}'$, and the camera centers \alert{all lie on the same plane}.
+
+\medskip
+
+\myfig{2in}{HZ-fig8-1a}{Hartley and Zisserman (2004), Fig.\ 9.1a}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Epipolar lines}
+
+We see that the image of the backprojection of $\vec{x}$ in view 2
+forms a line $\vec{l}'$.  This line is called the \alert{epipolar
+line} corresponding to $\vec{x}$.
+
+\myfig{2in}{HZ-fig8-1b}{Hartley and Zisserman (2004), Fig.\ 9.1b}
+
+\medskip
+
+When attempting stereo correspondence, we see immediately that if the
+epipolar geometry is known, we don't have to search the entire image
+for a corresponding point --- \alert{we only have to search along the
+epipolar line}.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Epipoles}
+
+The \alert{epipoles} are the intersections of the baseline with the
+image planes:
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig8-2a}{\parbox{1.9in}{The baseline intersects the
+image planes at \alert{epipoles} $\vec{e}$ and $\vec{e}'$}}
+\column{2in}
+\myfig{1.9in}{HZ-fig8-2b}{\parbox{1.9in}{As we move a point $\vec{X}$
+in $\Rset^3$, the epipolar planes rotate around the baseline and
+always intersect the epipoles.}}
+\end{columns}
+
+\medskip
+
+\centerline{\scriptsize Hartley and Zisserman, Fig.\ 9.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Epipolar lines}
+
+To summarize the main terms in epipolar geometry:
+\begin{itemize}
+\item The \alert{epipole} is the point of intersection of the
+  baseline with the image plane.
+\item An \alert{epipolar plane} is a plane containing the baseline.
+\item An \alert{epipolar line} is the intersection of an epipolar
+  plane with the image plane.  All epipolar lines intersect at the
+  epipole.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Example 1}
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig8-3a}{\parbox{1.4in}{Example camera setup
+with \alert{converging} cameras}}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig8-3b}{\parbox{1.4in}{Left image, with points and
+epipolar lines}}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig8-3c}{\parbox{1.4in}{Right image, with
+corresponding points/lines}}
+\end{columns}
+
+\medskip
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 9.3}
+
+\medskip
+
+The two cameras are related by \alert{translation plus rotation}.  The
+epipoles are \alert{finite} (but outside the image).
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Example 2}
+
+\medskip
+
+\myfig{3.3in}{HZ-fig8-4a}{Example camera setup with
+    \alert{parallel} cameras}
+
+\medskip
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig8-4b}{\parbox{1.9in}{Left image, with some
+sample epipolar lines}}
+\column{2in}
+\myfig{1.9in}{HZ-fig8-4c}{\parbox{1.9in}{Right image, with
+corresponding epipolar lines}}
+\end{columns}
+
+\medskip
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 9.4}
+
+\medskip
+
+The two image planes are nearly \alert{parallel}.  The motion is a
+\alert{translation} with a small rotation around the $z$ axis.  The
+epipoles are points at infinity.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{The fundamental matrix}
+
+The fundamental matrix is the ``algebraic representation of epipolar
+geometry'' (Hartley and Zisserman, 2004, p.\ 241).
+
+\medskip
+
+As we know now, a point $\vec{x}'$ in image 2 correspoding to point
+$\vec{x}$ in image 1 must lie on the epipolar line $\vec{l}'$.  We
+need a \alert{map} from \alert{points} in one image to \alert{epipolar
+lines} in the other image, i.e., $\vec{x} \mapsto \vec{l}'$.
+
+\medskip
+
+Recall that a \alert{homography} is a $3\times 3$ rank 3 matrix
+mapping a point in one image to a point in the other image.
+
+\medskip
+
+The \alert{fundamental matrix} $\mat{F}$ is a $3\times 3$
+\alert{rank 2} matrix mapping a point in image 1 to the corresponding
+line $\vec{l}'$ in image 2, i.e., $\vec{l}' = \mat{F}\vec{x}$.
+
+\medskip
+
+Since the point $\vec{x}'$ corresponding to $\vec{x}$ necessarily lies
+on $\vec{l}'$, we know that $\vec{x}^{\prime T}\vec{l}'=0$ and
+therefore, $\vec{x}^{\prime T}\mat{F}\vec{x}=0$.
+
+\medskip
+
+This allows us to compute $\mat{F}$ from a set of \alert{point
+correspondences} $\{ \vec{x}_i \leftrightarrow \vec{x}'_i\}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{The fundamental matrix}
+
+\begin{block}{Definition}
+If we have two images acquired by (linear) cameras with non-coincident
+centers, the \alert{fundamental matrix} $\mat{F}$ is the unique
+$3\times 3$ rank 2 homogeneous matrix satisfying
+\begin{equation*}
+\vec{x}^{\prime T}\mat{F}\vec{x}=0
+\end{equation*}
+for all corresponding points $\vec{x} \leftrightarrow \vec{x}'$.
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{The fundamental matrix}
+
+\begin{block}{Properties of $\mat{F}$}
+\begin{itemize}
+\item[(i)] {\bf Transpose:} If $\mat{F}$ is the fundamental matrix for
+  cameras $(\mat{P},\mat{P}')$, then $\mat{F}^T$ is the fundamental
+  matrix for $(\mat{P}',\mat{P})$.
+\item[(ii)] {\bf Epipolar lines:} For any point $\vec{x}$ in image 1,
+  the epipolar line is $\vec{l}'=\mat{F}\vec{x}$, and for any point
+  $\vec{x}'$ in image 2, the epipolar line is
+  $\vec{l}=\mat{F}^T\vec{x}'$.
+\item[(iii)] The {\bf epipole}: for any point $\vec{x}$ except
+  $\vec{e}$, the epipolar line $\vec{l}'=\mat{F}\vec{x}$ contains the
+  epipole $\vec{e}'$.  Therefore $\vec{e}^{\prime
+  T}(\mat{F}\vec{x})=(\vec{e}^{\prime T}\mat{F})\vec{x}=0$, so
+  $\vec{e}^{\prime T}\mat{F}=\vec{0}$, i.e., $\vec{e}'$ is the left
+  null-vector of $\mat{F}$ and $\vec{e}$ is the right null-vector of
+  $\mat{F}$.
+\item[(iv)] $\mat{F}$ has 7 degrees of freedom: 8 for a $3\times 3$
+  homogeneous matrix minus one for the constraint that
+  $\det\mat{F}=0$.
+\item[(v)] $\mat{F}$ is known as a \alert{correlation}, which is a
+  projective map taking a point to a line.  If $\vec{l}$ and
+  $\vec{l}'$ are corresponding epipolar lines, any point $\vec{x}$ on
+  $\vec{l}$ is mapped to the same epipolar line $\vec{l}'$.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Epipolar lines correspond}
+
+All points on an epipolar line $\vec{l}$ in image 1 correspond to the
+same epipolar line $\vec{l}'$ in image 2.
+
+\medskip
+
+\myfig{1.9in}{HZ-fig8-6a}{Hartley and Zisserman (2004), Fig.\ 9.6a}
+
+\end{frame}
+
+
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Computing $\mat{F}$ for calibrated cameras}
+
+Suppose we know know $\mat{P}=\mat{K}[\mat{I}\mid \vec{0}]$ and
+$\mat{P}'=\mat{K}'[\mat{R}\mid \vec{t}]$ (we have calibrated cameras).
+
+\medskip
+
+This occurs, for example, in the case of a fixed stereo head.
+
+\medskip
+
+$\mat{F}$ can be computed \alert{directly} in this case as
+$\mat{F}=\crossmat{\vec{e}'}\mat{K}'\mat{R}\mat{K}^{-1}$.\footnote{Remember
+  that
+\begin{equation*}
+  \crossmat{\vec{a}}=\begin{bmatrix} 0 & -a_3 & a_2 \\
+    a_3 & 0 & -a_1 \\ -a_2 & a_1 & 0 \end{bmatrix}
+\end{equation*}
+is a skew-symmetric matrix having $\vec{a}$ as its null space and can
+be used to convert the cross product operation into a matrix
+multiplication: $\vec{a} \times \vec{b} = \crossmat{\vec{a}}\vec{b}$.}
+
+\medskip
+
+[Verify this is true by seeing how $\mat{F}$ constructed this way
+ transforms point $\vec{x}$ in camera 1 ($\mat{P}$), and recall
+ that in $\Pset^2$,
+ the cross product of two points gives the line containing them.]
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Special motion: translation}
+
+\alert{Special motions} occur when particular relationships between
+the rotation and translation in a rigid motion hold.
+
+\medskip
+
+\begin{columns}
+\column{2in}
+Under the special motion of \alert{pure translation} of the world
+$-\vec{t}$, the points move on \alert{straight lines parallel to
+  $\vec{t}$}.
+
+\medskip
+
+The 3D points slide along parallel rails under pure translation.
+
+\column{2.3in}
+\myfig{2.2in}{HZ-fig8-7}{Hartley and Zisserman (2004), Fig. 9.7}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Special motion: translation}
+
+\myfig{2.5in}{HZ-fig8-8a}{(a)}
+
+\medskip
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig8-8b}{(b)}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig8-8c}{(c)}
+\end{columns}
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig. 9.8}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Special motion: translation}
+
+Under pure translation, the epipole, called the \alert{focus of
+  expansion}, is the \alert{same in both images} (we say the images
+are \alert{auto-epipolar}).
+
+\medskip
+
+Since we have \alert{no rotation} and the \alert{cameras are the
+  same}, we can write
+$\mat{F}=\crossmat{\vec{e}'}\mat{K}\mat{K}^{-1}=\crossmat{\vec{e}'}$.
+
+\medskip
+
+As an example, consider translation in the direction of the $x$ axis.
+The epipole will be $(1,0,0)^T$ so we want
+\begin{equation*}
+\mat{F}=\begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & -1 \\ 0 & 1 & 0
+\end{bmatrix},
+\end{equation*}
+then $\vec{x}=(x_1,y_1,1)^T$ gets mapped to
+$\vec{l}'=(0,-1,y_1)^T$ (i.e.\ $y_2=y_1$).\footnote{Transforming images so
+  that this is true is called \alert{rectification}.}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{General motion}
+
+A \alert{general motion} can always be decomposed as follows:
+\begin{itemize}
+\item Rotate the camera
+\item Correct the calibration matrix
+\item Translate the camera.
+\end{itemize}
+
+\medskip
+
+We know the rotation and calibration change is governed by a
+homography $\mat{H}$.
+
+\medskip
+
+We now know that the pure translation is governed by
+$\hat{\mat{F}}=\crossmat{\vec{e}'}$.
+
+\medskip
+
+Putting these together, we obtain
+$\vec{x}'\hat{\mat{F}}\hat{\vec{x}}=0$ where $\hat{\vec{x}}=\mat{H}\vec{x}$,
+so $\vec{x}^{\prime T}\crossmat{\vec{e}'}\mat{H}\vec{x}=0$,
+and the final fundamental matrix is
+\begin{equation*}
+\mat{F}=\crossmat{\vec{e}'}\mat{H}.
+\end{equation*}
+The effects of rotation and translation compose.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{General motion}
+
+\myfig{3.5in}{HZ-fig8-9}{Hartley and Zisserman (2004), Fig.\ 9.9}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Retrieving $\mat{P},\mat{P}'$ from $\mat{F}$}
+
+Epipolar geometry \alert{does not depend on Euclidean measurements}
+such as angles between rays.
+
+\medskip
+
+$\mat{F}$ only depends on relationships between image points.
+
+\medskip
+
+This means that $\mat{F}$ \alert{does not change} under projective
+transformations on the world.
+
+\medskip
+
+Put another way, the fundamental matrix for $(\mat{P},\mat{P}')$ is
+the \alert{same} as the fundamental matrix for
+$(\mat{P}\mat{H},\mat{P}'\mat{H})$.
+
+\medskip
+
+\alert{A pair of camera matrices uniquely determines a fundamental
+matrix, but the converse is not true.}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Retrieving $\mat{P},\mat{P}'$ from $\mat{F}$}
+
+Since $\mat{P}$ and $\mat{P}'$ are not uniquely determined by
+$\mat{F}$, we will typically assume a \alert{canonical form} where
+$\mat{P} = [\mat{I} \mid \vec{0}]$.
+
+\medskip
+
+Then we will try to find
+$\mat{P}'=[\mat{M}\mid{\vec{m}}]$ consistent with $\mat{P}$ and
+$\mat{F}$.
+
+\medskip
+
+It turns out that for this definition of $\mat{P}$, $\mat{P}'$,
+we can write $\mat{F}=\crossmat{\vec{m}}\mat{M}$.
+
+\medskip
+
+(See text for proof, and see the definition of
+ $\mat{F}$ for known $\mat{P},\mat{P}'$.)
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Retrieving $\mat{P},\mat{P}'$ from $\mat{F}$}
+
+Let's consider the ambiguous relationship between $\mat{F}$ and
+$\mat{P}'$.
+
+\medskip
+
+We just saw that $\mat{F}$ is invariant under projective
+transformations of 3-space.
+
+\medskip
+
+It is also true that this is the only amgbiguity, i.e., $\mat{F}$
+determines $\mat{P}$ and $\mat{P}'$ up to a projective transformation:
+
+\begin{block}{Projective ambiguity}
+If $\mat{F}$ is the fundamental matrix
+for both $(\mat{P},\mat{P}')$ and
+$(\tilde{\mat{P}},\tilde{\mat{P}}')$, then there exists a homography
+$\mat{H}$ such that $\tilde{\mat{P}}=\mat{P}\mat{H}$ and
+$\tilde{\mat{P}}'=\mat{P}'\mat{H}$.
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Retrieving $\mat{P},\mat{P}'$ from $\mat{F}$}
+
+The ambiguity in $\mat{P}$ and $\mat{P}'$ explained by $\mat{F}$ can
+also be understood through a degrees-of-freedom argument:
+\begin{itemize}
+\item The two cameras are 12-element homogeneous matrices with 11
+  degrees of freedom, for a total of 22 degrees of freedom.
+\item A homography has 15 degrees of freedom
+\item The fundamental matrix has 7 degrees of freedom.
+\item Once we know $\mat{F}$ and the homography $\mat{H}$ transforming
+  the scene, all 22 degrees of freedom in $\mat{P},\mat{P}'$ are fixed. 
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Retrieving $\mat{P},\mat{P}'$ from $\mat{F}$}
+
+Now we are ready to calculate the canonical camera matrices from
+$\mat{F}$.
+
+\medskip
+
+Given $\mat{F}$, we define $\mat{P}=[\mat{I}\mid \vec{0}]$ and
+$\mat{P}'=[\mat{S}\mat{F}\mid\vec{e}']$, where $\vec{e}'$ is the
+epipole of image 2 (i.e.\ $\vec{e}^{\prime T}\mat{F}=\vec{0}$) and
+$\mat{S}=\crossmat{\vec{s}}$ is any skew-symmetric matrix.
+
+\medskip
+
+$\mat{F}$ will be the fundamental matrix for $(\mat{P},\mat{P}')$.  A
+good choice for $\mat{S}$ is $\crossmat{\vec{e}'}$.
+
+\medskip
+
+The \alert{most general} solution making the ambiguity of $\mat{P}'$
+explicit is
+\begin{equation*}
+\mat{P}=[\mat{I}\mid\vec{0}]  \hspace{0.5in}
+\mat{P}'=[\crossmat{\vec{e}'}\mat{F}+\vec{e}'\vec{v}^T\mid\lambda\vec{e}']
+\end{equation*}
+where $\vec{v}$ is any 3-vector and $\lambda$ is a non-zero scalar.
+
+\medskip
+
+So \alert{if we know $\mat{F}$}, the cameras $\mat{P} = [\mat{I} \mid
+\vec{0}]$ and $\mat{P}' = [\crossmat{\vec{e}'}\mat{F} \mid \vec{e}']$
+are fine choices for obtaining
+a \alert{projective} reconstruction of the scene
+points.
+
+\medskip
+
+Now we'll see that a \alert{metric} reconstruction can be had if we
+know $\mat{K}$ and $\mat{K}'$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{The essential matrix $\mat{E}$}
+
+The \alert{essential matrix} is a specialization of the fundamental
+matrix to the case of \alert{normalized image coordinates}.
+
+\medskip
+
+If we know $\mat{K}$ and $\mat{K}'$, let
+$\hat{\vec{x}}=\mat{K}^{-1}\vec{x}$ and let
+$\hat{\vec{x}}'=\mat{K}^{\prime -1}\vec{x}'$.
+
+\medskip
+
+Then the essential matrix is the matrix $\mat{E}$ satisfying
+\begin{equation*}
+\hat{\vec{x}}^{\prime T}\mat{E}\hat{\vec{x}}=0
+\end{equation*}
+
+\medskip
+
+This leads to the relationship between the fundamental and essential
+matrices:
+\begin{equation*}
+\mat{E}=\mat{K}^{\prime T}\mat{F}\mat{K}.
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Recovering $\mat{P}$, $\mat{P}'$ from $\mat{E}$}
+
+The camera matrices $\mat{P}$ and $\mat{P}'$ can be extracted from
+$\mat{E}$ \alert{up to scale and a four-fold ambiguity}.
+
+\medskip
+
+First, assume $\mat{P}=[\mat{I}\mid\vec{0}]$ and take the SVD $\mat{U}
+\cdot \text{diag}(1,1,0) \cdot \mat{V}^T$ of normalized $\mat{E}$.
+
+\medskip
+
+There will be four consistent choices for $\mat{P}'$:
+\begin{equation*}
+\mat{P}'=[\mat{U}\mat{W}\mat{V}^T \mid +\vec{u}_3]
+\text{\ or\ }
+[\mat{U}\mat{W}\mat{V}^T \mid -\vec{u}_3]
+\text{\ or\ }
+[\mat{U}\mat{W}^T\mat{V}^T \mid +\vec{u}_3]
+\text{\ or\ }
+[\mat{U}\mat{W}^T\mat{V}^T \mid -\vec{u}_3].
+\end{equation*}
+where
+\begin{equation*}
+\mat{W} = \begin{bmatrix} 0 & -1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1
+\end{bmatrix}.
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Epipolar geometry and the fundamental matrix}
+\framesubtitle{Recovering $\mat{P}$, $\mat{P}'$ from $\mat{E}$}
+
+Once we have the four possible solutions, we choose the one in which
+the reconstruction of some point $\vec{X}$ is \alert{visible in both
+  images}:
+
+\medskip
+
+\myfig{2.3in}{HZ-fig8-12}{Hartley and Zisserman (2004), Fig.\ 9.12}
+
+\medskip
+
+The scale of the scene cannot be recovered, unless some metric
+property such as the baseline or the distance between two world points
+is known.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{3D reconstruction overview}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Introduction}
+
+How can we \alert{reconstruct} the 3D scene from a pair of 2D images?
+
+\medskip
+
+Here is a general framework:
+\begin{itemize}
+\item \alert{Compute $\mat{F}$} from point correspondences, as
+  described in Chapter 11.
+\item \alert{Compute $\mat{P},\mat{P}'$ from $\mat{F}$}, using the
+  formula from the previous section.
+\item For each point correspondence $\vec{x}_i \leftrightarrow
+  \vec{x}_i'$, \alert{triangulate} to compute the point in space
+  projecting to these two image points, as described in Chapter 12.
+\item The result will be a \alert{projective} reconstruction of
+  the 3D scene points $\vec{X}_i$.
+\end{itemize}
+
+\medskip
+
+There are many variations.  For example, if $\mat{K}$ and $\mat{K}'$
+are known we can compute $\mat{E}$ instead of $\mat{F}$ and obtain
+a \alert{metric} reconstruction.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Reconstruction ambiguity}
+
+\begin{columns}
+\column{2.25in}
+
+Normally we will assume that the scene is determined \alert{at best}
+up to a \alert{Euclidean transformation} with respect to the world
+frame.
+
+\medskip
+
+I.e., we won't try to get latitude and longitude out of images!
+
+\medskip
+
+The second ambiguity that we can't resolve from images alone is the
+size or \alert{scale} of the scene.
+
+\medskip
+
+In this case we say our reconstruction is \alert{up to a similarity
+  transformation}.
+
+\column{2.25in}
+
+\myfig{2.2in}{HZ-fig9-2a}{Hartley and Zisserman (2004), Fig.\ 10.2(a)}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Reconstruction ambiguity}
+
+\begin{columns}
+\column{2.5in}
+
+If we don't know the \alert{internal calibration} of our cameras, we
+also have a \alert{projective} ambiguity.
+
+\medskip
+
+The \alert{projective reconstruction theorem} states that this is the
+\alert{only} ambiguity: if a set of point correspondences in two views
+determines $\mat{F}$ uniquely, the scene can be reconstructed, and any
+two such reconstructions are \alert{projectively equivalent}.
+
+\medskip
+
+See text for proof.  This is an important fact.
+
+\column{2in}
+
+\myfig{1.9in}{HZ-fig9-2a}{Hartley and Zisserman (2004), Fig.\ 10.2(a)}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Projective reconstruction ambiguity}
+
+Example of possible projective reconstructions from two views:
+
+\medskip
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-3a}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-3b}{}
+\end{columns}
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-3c}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-3d}{}
+\end{columns}
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 10.3}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Various ways to upgrade a projective reconstruction}
+
+What can we do to turn a 2-view projective reconstruction into a more
+accurate reconstruction?  We can
+look for \alert{scene constraints} or apply some \alert{prior
+  information}.
+
+\medskip
+
+If the motion is \alert{pure translation}, we can find the epipole
+(the convergence of the motion of the points) and obtain the cameras
+directly as $\mat{P}=[\mat{I}\mid\vec{0}]$ and
+$\mat{P}'=[\mat{I}\mid\vec{e}']$.
+
+\medskip
+
+If \alert{three sets of parallel lines} can be identified, the plane
+defined by their three points of intersection is the \alert{plane at
+infinity} $\pi_{\infty}$.
+
+\medskip
+
+If we can find $\pi_{\infty}$, a homography mapping the
+observed plane at infinity to its
+canonical position $(0,0,0,1)$ in the affine frame will
+give us an \alert{affine reconstruction}, correct up to an affine
+transformation.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Affine reconstruction ambiguity}
+
+Example affine reconstructions after mapping the plane at infinity:
+
+\medskip
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.3in}{HZ-fig9-4a}{}
+\column{1.5in}
+\myfig{1.3in}{HZ-fig9-4b}{}
+\column{1.5in}
+\myfig{1.3in}{HZ-fig9-4c}{}
+\end{columns}
+
+\begin{columns}
+\column{2in}
+\myfig{1.7in}{HZ-fig9-4d}{}
+\column{2in}
+\myfig{1.7in}{HZ-fig9-4e}{}
+\end{columns}
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 10.4}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Affine reconstruction ambiguity}
+
+Once an affine reconstruction is had, if the \alert{absolute conic}
+can be identified, it can be mapped to its canonical position on the
+plane at infinity.
+
+\medskip
+
+This gives a \alert{metric reconstruction}, correct
+up to a similarity.
+
+\medskip
+
+The absolute conic can be determined, for example, by finding
+orthogonal lines and planes in the scene.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Metric reconstruction ambiguity}
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-5a}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-5b}{}
+\end{columns}
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-5c}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig9-5d}{}
+\end{columns}
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 10.5}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{3D reconstruction overview}
+\framesubtitle{Metric reconstruction summary}
+
+Other methods include using \alert{known camera parameters} or some
+knowledge of some \alert{ground truth} relationships.
+
+\medskip
+
+Among the most robust approaches to obtaining a metric reconstruction
+involves estimating the \alert{absolute dual quadric}.  We'll see this
+method in some detail later.
+
+\medskip
+
+But all of these techniques require, to begin with,
+\begin{itemize}
+\item \alert{Finding good correspondences} which
+is closely related to robust estimation of $\mat{F}$, and
+\item \alert{Triangulation}.
+\end{itemize}
+
+These are the next two topics.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Computation of $\mat{F}$}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Introduction}
+
+As we saw before, if we know $\mat{F}$ we can perform projective
+reconstruction from two views.
+
+\medskip
+
+Another important use of $\mat{F}$ is in image \alert{rectification},
+in which we want to align the epipolar lines in two images in order to
+make the search for \alert{dense stereo correspondences} simple.
+
+\medskip
+
+We will obtain a set of \alert{point correspondences} and use our
+now-familiar estimation tools to get $\mat{F}$.
+
+\medskip
+
+As before, we'll start with correspondences $\vec{x}_i \leftrightarrow
+\vec{x}_i'$ and define a \alert{linear minimization} of
+\alert{algebraic error}.
+
+\medskip
+
+Then we'll perform \alert{nonlinear estimation} to obtain a ML (Gold
+Standard) estimate minimizing \alert{geometric error}.
+
+\medskip
+
+We'll finally look at \alert{robust estimation} towards eliminating
+the bad correspondences (outliers) from the set of putative
+correspondences.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Estimating $\mat{F}$ by linear minimization of
+  algebraic error}
+
+From the relationship
+\begin{equation*}
+\vec{x}^{\prime T}\mat{F}\vec{x} = 0
+\end{equation*}
+we write $\vec{x} = (x,y,1)^T$ and $\vec{x}' = (x',y',1)^T$ and expand
+the matrix equation in terms of the scalar elements.
+
+\medskip
+
+We obtain
+\begin{equation*}
+x'xf_{11}+x'yf_{12}+x'f_{13}+
+y'xf_{21}+y'yf_{22}+y'f_{23}+
+xf_{31}+yf_{32}+f_{33}=0.
+\end{equation*}
+
+Writing $\mat{F}$ as a vector $\vec{f}$ in row-major order, we obtain
+the inner product
+\begin{equation*}
+(x'x, x'y, x', y'x, y'y, y', x, y, 1)\vec{f} = 0.
+\end{equation*}
+
+and for $n$ points we obtain the linear system
+\begin{equation*}
+\mat{A}\vec{f}=\begin{bmatrix}
+x'_1x_1 & x'_1y_1 & x'_1 & y'_1x_1 & y'_1y_1 & y'_1 & x_1 & y_1 & 1 \\
+\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \\
+x'_nx_n & x'_ny_n & x'_n & y'_nx_n & y'_ny_n & y'_n & x_n & y_n & 1
+\end{bmatrix}\vec{f}=\vec{0}.
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Estimating $\mat{F}$ by linear minimization of
+  algebraic error: singularity constraint}
+
+\begin{columns}
+\column{2.5in}
+We can obtain an \alert{exact solution} with 8 points in a
+non-degenerate configuration as the right null space of $\mat{A}$.
+
+\medskip
+
+In the \alert{overdetermined} case we choose the last right singular
+vector of $\mat{A}$.
+
+\medskip
+
+One problem is that there is a
+\alert{singularity constraint} on $\mat{F}$ --- it should be rank
+2.
+
+\medskip
+
+The linear estimate will not necessarily meet that constraint, and
+this could have consequences (picture on right).
+
+\column{2in}
+\myfig{1.9in}{HZ-fig10-1a}{Hartley and Zisserman (2004), Fig.\ 11.1(a)}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Estimating $\mat{F}$ by linear minimization of
+  algebraic error: enforcing the singularity constraint}
+
+\begin{columns}
+\column{2.5in} We saw how SVD can be used to enforce orthonormal
+constraints on $\mat{R}$.
+
+\medskip
+
+We use the SVD to force the linear estimate of $\mat{F}$ to the
+\alert{nearest rank 2 matrix}.
+
+\medskip
+
+Obtain $\mat{U}\mat{D}\mat{V}^T=\mat{F}$, then
+replace $\mat{F}$ with $\mat{F}'=\mat{U}\text{\
+diag}(\sigma_1,\sigma_2,0)\mat{V}^T$ where $\sigma_1$ and $\sigma_2$
+are the first two singular values in $\mat{D}$.
+
+\medskip
+
+The result is guaranteed to be the rank 2 matrix
+closest to $\mat{F}$ in terms of Frobenius norm.
+
+\column{2in}
+\myfig{1.9in}{HZ-fig10-1b}{Hartley and Zisserman (2004), Fig.\ 11.1(b)}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{8 points vs.\ 7 points}
+
+This algorithm, invented in 1981 by Longuet-Higgins, is called the
+\alert{8-point algorithm} for $\mat{F}$, as it requires 8
+correspondences.
+
+\medskip
+
+In fact, more correspondences can be used for an overdetermined
+solution.
+
+\medskip
+
+Since $\mat{F}$ has 7 degrees of freedom (one is lost to homogeneity
+and one is lost to singularity), it is also possible to estimate
+$\mat{F}$ from 7 correspondences by using the singularity constraint
+and the 2-dimensional null space of the design matrix.  This is called
+the \alert{7-point algorithm} for $\mat{F}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Normalized 8-point algorithm}
+
+As with previous DLT algorithms, the 8-point algorithm can perform
+poorly with arbitrary data, so prenormalization is required.  We use
+the same isotropic scaling as for estimation of $\mat{H}$.
+
+\medskip
+
+\begin{block}{Normalized 8-point algorithm for $\mat{F}$: Objective}
+Given $n \ge 8$ image point correspondences $\{\vec{x}_i
+\leftrightarrow \vec{x}_i'\}$, determine the fundamental matrix
+$\mat{F}$ such that $\vec{x}_i^{\prime T}\mat{F}\vec{x}_i = 0$.
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Normalized 8-point algorithm}
+
+\begin{block}{Normalized 8-point algorithm for $\mat{F}$: Algorithm}
+\begin{itemize}
+\item[(i)] {\bf Normalization}: Transform
+  $\hat{\vec{x}}_i=\mat{T}\vec{x}_i$ and
+  $\hat{\vec{x}}'_i=\mat{T}'\vec{x}_i'$ with isotropic scaling
+  matrices $\mat{T}$ and $\mat{T}'$.
+\item[(ii)] Find $\hat{\mat{F}}'$ for $\hat{\vec{x}}_i \leftrightarrow
+  \hat{\vec{x}}_i'$:
+  \begin{itemize}
+  \item[(a)] {\bf Linear solution}: Calculate $\hat{\mat{A}}$ from the
+    correspondences and obtain $\hat{\mat{F}}$ from its SVD.
+  \item[(b)] {\bf Singularity enforcement}: Replace $\hat{\mat{F}}$ by
+    $\hat{\mat{F}}'$ such that $\det \hat{\mat{F}}'=0$ using the SVD.
+  \end{itemize}
+\item[(iii)] {\bf Denormalization}: Return $\mat{F}=\mat{T}^{\prime
+  T}\hat{\mat{F}}'\mat{T}$.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Gold Standard method}
+
+The Gold Standard method tries to obtain the ML estimate of $\mat{F}$
+under the assumption of Gaussian error.  It minimizes the \alert{reprojection
+error}
+\begin{equation*}
+\sum_i d(\vec{x}_i,\hat{\vec{x}}_i)^2+d(\vec{x}_i',\hat{\vec{x}}_i')^2
+\end{equation*}
+where $\vec{x}_i \leftrightarrow \vec{x}_i'$ are the measured
+correspondences and $\hat{\vec{x}}_i \leftrightarrow \hat{\vec{x}}_i'$ are
+estimated true correspondences \alert{exactly satisfying}
+$\hat{\vec{x}}_i^{\prime T}\mat{F}\hat{\vec{x}}_i = 0$.
+
+\medskip
+
+To perform the minimization, we posit \alert{camera matrices}
+$\mat{P}=[\mat{I}\mid\vec{0}]$ and $\mat{P}'=[\mat{M}\mid\vec{t}]$ as
+well as \alert{3D points} $\vec{X}_i$.
+
+\medskip
+
+Then we let $\hat{\vec{x}}_i=\mat{P}\vec{X}_i$ and $\hat{\vec{x}}_i' =
+\mat{P}'\vec{X}_i$ then we \alert{vary $\mat{P}'$ and $\vec{X}_i$} to
+minimize the error expression using Levenberg-Marquardt.
+
+\medskip
+
+Finally we obtain $\mat{F}=\crossmat{\vec{t}}\mat{M}$, which will
+satisfy $\hat{\vec{x}}_i^{\prime T}\mat{F}\hat{\vec{x}}_i=0$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Sampson approximation to reprojection error}
+
+The Gold Standard method is a bit complex to implement, so we normally
+use simpler cost functions such as the \alert{Sampson distance}
+\begin{equation*}
+\sum_i \frac{(\vec{x}_i^{\prime T}\mat{F}\vec{x}_i)^2}
+{(\mat{F}\vec{x}_i)^2_1+(\mat{F}\vec{x}_i)_2^2+(\mat{F}^T\vec{x}_i')_1^2
++ (\mat{F}^T\vec{x}_i')_2^2}
+\end{equation*}
+that do not involve subsidiary variables like $\vec{X}_i$ and
+$\mat{P}'$ in the Gold Standard method.
+
+\medskip
+
+In practice Sampson performs about as well as MLE but the parameter
+vector is much smaller.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Experimental evaluation}
+
+See Section 11.5 of the text for an experimental evaluation of three
+algorithms (normalized 8-point, Gold Standard, and an iterative linear
+algorithm).
+
+\medskip
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2a}{}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2b}{}
+\end{columns}
+
+\centerline{\scriptsize House images, Hartley and Zisserman (2004),
+Fig.\ 11.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Experimental evaluation}
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2c}{}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2d}{}
+\end{columns}
+
+\centerline{\scriptsize Statue images, Hartley and Zisserman (2004),
+Fig.\ 11.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Experimental evaluation}
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2e}{}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2f}{}
+\end{columns}
+
+\centerline{\scriptsize Grenoble Museum, Hartley and Zisserman (2004),
+Fig.\ 11.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Experimental evaluation}
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2g}{}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2h}{}
+\end{columns}
+
+\centerline{\scriptsize Corridor scene, Hartley and Zisserman (2004),
+Fig.\ 11.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Experimental evaluation}
+
+\begin{columns}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2i}{}
+\column{2in}
+\myfig{1.9in}{HZ-fig10-2j}{}
+\end{columns}
+
+\centerline{\scriptsize Calibration rig, Hartley and Zisserman (2004),
+Fig.\ 11.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Experimental evaluation}
+
+Results: solid $=$ normalized 8-point, long dashed $=$ Gold Standard,
+dotted $=$ iterative.  Note low error for ``calibration.''
+
+\medskip
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig10-3a}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig10-3b}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig10-3c}{}
+\end{columns}
+
+\vspace{-.1in}
+
+\begin{columns}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig10-3d}{}
+\column{1.5in}
+\myfig{1.4in}{HZ-fig10-3e}{}
+\end{columns}
+
+\vspace{-.1in}
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 11.3}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Automatic computation of $\mat{F}$}
+
+As in the case of homography estimation, if we're extracting
+correspondences \alert{automatically}, we will have many
+\alert{outliers}.
+
+\medskip
+
+The idea is to use RANSAC to eliminate outliers.
+
+\medskip
+
+In this case we use the \alert{7-point algorithm} because it takes
+fewer random samples to ensure an inlier set.
+
+\medskip
+
+The disadvantage is that the 7-point algorithm has \alert{3
+solutions}, \alert{all of which need to be tried} for support.
+
+\medskip
+
+For the distance measure $d_{\perp}$ any geometric error measure can
+be used but it should be used consistently.
+
+\medskip
+
+The \alert{Sampson approximation} to geometric error previously
+described is a good candidate.
+
+\medskip
+
+\begin{block}{Automatic $\mat{F}$ estimation: Objective}
+Compute the fundamental matrix between two images.
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Automatic computation of $\mat{F}$}
+
+\begin{block}{Automatic $\mat{F}$ estimation: Algorithm}
+\begin{itemize}
+\item[(i)] {\bf Interest points}: Get a set of interest points in each image
+\item[(ii)] {\bf Putative correspondences}: Compute an initial set of
+correspondence using proximity and similarity
+\item[(iii)] {\bf RANSAC robust estimation}: Repeat for $N$ samples
+  \begin{itemize}
+  \item[(a)] Select 7 correspondences randomly and compute $\mat{F}$
+  \item[(b)] Calculate the distance $d_{\perp}$ for each correspondence
+  \item[(c)] Compute the number of inliers for $\mat{F}$ ($d_{\perp}<t$)
+  \item[(d)] Repeat for each of the possible solutions from the
+  7-point algorithm
+  \end{itemize}
+  Choose the $\mat{F}$ highest support.
+\item[(iv)] {\bf Nonlinear estimation}: Reestimate $\mat{F}$ from all
+inliers minimizing geometric error with Levenberg-Marquardt
+\item[(v)] {\bf Guided matching}: Determine additional correspondences
+within search strips around epipolar lines.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Automatic computation of $\mat{F}$: Experiment}
+
+Here are results of Hartley and Zisserman's experimental evaluation of
+the automatic $\mat{F}$ estimation algorithm for a translation motion:
+
+\medskip
+
+\begin{columns}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4a}{}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4b}{}
+\end{columns}
+
+\centerline{\scriptsize Original image pair, Hartley and Zisserman
+(2004), Fig.\ 11.4}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Automatic computation of $\mat{F}$: Experiment}
+
+\begin{columns}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4c}{}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4d}{}
+\end{columns}
+
+\centerline{\scriptsize Detected corners, Hartley and Zisserman
+(2004), Fig.\ 11.4}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Automatic computation of $\mat{F}$: Experiment}
+
+\begin{columns}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4e}{188 putative matches}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4f}{Outliers according to RANSAC (89/188)}
+\end{columns}
+
+\medskip
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 11.4}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Computation of $\mat{F}$}
+\framesubtitle{Automatic computation of $\mat{F}$: Experiment}
+
+\begin{columns}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4g}{Inliers according to RANSAC (99/188)}
+\column{2.25in}
+\myfig{2.2in}{HZ-fig10-4h}{Final set of 157 matches from guided matching}
+\end{columns}
+
+\bigskip
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 11.4}
+
+Notice there is at least one error in the guided match set.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Sparse correspondence with SIFT}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Introduction}
+
+Notice that many of the techniques we've looked at thus far require a
+set of \alert{point correspondences} $\vec{x}_i \leftrightarrow
+\vec{x}_i'$.
+
+\medskip
+
+See the Torr toolbox for a practical implementation using \alert{Harris
+corners} with the robust RANSAC-based method for $\mat{F}$.
+
+\medskip
+
+The methods generally rely on \alert{minimal camera motion} in which
+case local image similarity techniques work well.
+
+\medskip
+
+However, when there is significant motion between two images, a
+\alert{rich} feature detector with \alert{invariance to rotation and
+scale} is desirable.
+
+\medskip
+
+Lowe's (2004) Scale Invariant Feature Transform (SIFT) extracts
+feature points with a vector of attributes that is \alert{invariant}
+to scale and rotation in the plane and \alert{robust} to moderate
+amounts of various kinds of affine distortion and noise.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT steps}
+
+SIFT (Lowe, 2004) performs four basic steps:
+\begin{itemize}
+\item {\bf Scale-space extrema detection:} A difference-of-Gaussian
+  filter is run at several scales to find points that are local maxima
+  or minima in space \alert{and scale}.
+\item {\bf Keypoint localization:} For each candidate location, the
+  \alert{scale} and \alert{location} is determined, and unstable
+  locations are discarded.
+\item {\bf Orientation assignment:} \alert{Orientations} are assigned
+  to keypoint locations.
+\item {\bf Keypoint descriptor:} A descriptor of the image intensities
+  around the keypoint location is computed.  The descriptors are
+  obtained \alert{relative to the keypoint's location, orientation,
+  and scale}, so that the descriptor is \alert{invariant} to scales,
+  rotations (in the image plane), and translations.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT scale space}
+
+The scale space is obtained by convolving Gaussians of various sizes
+with the input image:
+\begin{equation*}
+L(x,y,\sigma)=G(x,y,\sigma) * I(x,y)
+\end{equation*}
+where $*$ is convolution and the 2D Gaussian is defined by
+\begin{equation*}
+G(x,y,\sigma)=\frac{1}{2\pi\sigma^2}e^{-(x^2+y^2)/(2\sigma^2)}.
+\end{equation*}
+
+\alert{Stable keypoints} are identified using the \alert{difference of
+  Gaussian} function:
+\begin{eqnarray*}
+D(x,y,\sigma) & = & (G(x,y,k\sigma)-G(x,y,\sigma)) * I(x,y) \nonumber \\
+& = & L(x,y,k\sigma) - L(x,y,\sigma)
+\end{eqnarray*}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT scale space}
+
+\myfig{3in}{SIFT-fig1}{Lowe (2004), Fig.\ 1}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT scale space}
+
+Candidate keypoint locations are maxima and minima of the
+difference-of-Gaussian scale space in $x$, $y$, \alert{and scale}:
+
+\medskip
+
+\myfig{2in}{SIFT-fig2}{Lowe (2004), Fig.\ 2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT keypoint localization}
+
+For the localization step, we could just take the location and scale
+at which the point was detected.
+
+\medskip
+
+Instead, Lowe fits a quadratic function to the local values of
+$D(x,y,\sigma)$ then obtains a \alert{sub-pixel estimate} of the
+location of the extremum, $\hat{\vec{x}}$.
+
+\medskip
+
+\alert{Low-contrast} extrema are immediately \alert{discarded}.
+
+\medskip
+
+Then, the eigenvalues of the $2\times 2$ Hessian matrix around
+$\hat{\vec{x}}$ are examined to determine whether the extremum
+reflects a \alert{simple edge} or a more complex \alert{corner-like}
+region.
+
+\medskip
+
+Simple edge-like candidate keypoints are discarded.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT orientation assignment}
+
+Using the Gaussian smoothed image at the scale closest to the detected
+difference of Gaussian extremum, we collect a \alert{histogram} of
+image gradients in 36 directions in the region around the point.
+
+\medskip
+
+For the \alert{highest peak in the orientation histogram} and any
+other strong peaks in the orientation histogram, SIFT creates a
+keypoint descriptor with that orientation.
+
+\medskip
+
+This means we can get multiple keypoints for the same location
+$(x,y,\sigma)$, but this only happens approximately 15\% of the time.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT keypoint descriptor}
+
+Finally, we compute a set of local histograms of gradient directions,
+\alert{relative to the dominant orientation}.
+
+\myfig{2.5in}{SIFT-fig7}{Lowe (2004), Fig.\ 7}
+
+This is a $2x2$ grid from a $16\times 16$ sample array, but the
+standard implementations use $4\times 4$ descriptor grid from a
+$16\times 16$ sample array, to obtain a 128-element descriptor.
+
+\medskip
+
+The blue circle is a Gaussian weighting window.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{SIFT}
+
+Lowe's main goal was to perform \alert{object recognition} in
+cluttered environments, but several computer vision and robotics
+groups have found SIFT useful for \alert{wide baseline matching} to
+get correspondences for other algorithms.
+
+\medskip
+
+Next we look at an example from a possible application in robotics.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+Akash Dev Nakarmi collected a series of 21 pictures at the AIT golf
+course:
+
+\medskip
+
+\begin{columns}
+
+\column{1.5in}
+\myfig{1.4in}{Golf0}{}
+
+\column{1.5in}
+\myfig{1.4in}{Golf1}{}
+
+\column{1.5in}
+\myfig{1.4in}{Golf2}{}
+
+\end{columns}
+
+\begin{itemize}
+\item The camera, a Sony DSC-200, was approximately 50cm from the ground.
+\item Between each image, the camera was moved forward about 25cm.
+\item Small random fluctuations in rotation were allowed.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+I ran the images through Rob Hess' SIFT implementation {\tt siftfeat},
+which is based on OpenCV.
+
+\medskip
+
+Go to \url{http://web.engr.oregonstate.edu/~hess/} to download this
+excellent open source software.
+
+\medskip
+
+The output is an array of {\tt struct}s or a text file containing the
+number of detected features, the number of attributes per feature, and
+the data:
+
+\medskip
+
+{\scriptsize
+\begin{lstlisting}
+3062 128
+228.141322 455.408286 43.929582 1.980753
+ 22 0 0 0 0 0 0 26 42 2 0 1 2 4 8 68 35 6 0 0
+ 10 28 64 81 92 84 1 0 7 11 41 94 87 2 0 4 2 0 0 55
+ 89 31 10 66 41 1 4 47 145 49 5 8 32 87 23 43 26 116 3 1
+ 57 130 10 4 61 2 1 18 25 2 3 64 123 8 4 92 73 2 1 35
+ 145 27 1 4 24 32 6 43 21 6 0 0 84 107 5 3 1 0 0 3
+ 10 0 1 6 52 0 0 6 18 0 0 31 145 7 0 0 0 3 4 82
+ 9 3 0 0 1 9 4 7
+...
+\end{lstlisting}}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+\myfig{3.5in}{Golf0-sift}{AIT golf course image 0 with 3062 SIFT
+  features detected.}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+\myfig{3.5in}{Golf1-sift}{AIT golf course image 1 with 2993 SIFT
+  features detected.}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+\myfig{3.5in}{Golf2-sift}{AIT golf course image 2 with 3042 SIFT
+  features detected.}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+To obtain initial sets of putative correspondences I ran the SIFT
+features through Hess' implementation of the k-D tree-based best bin
+first (BBF) approximate nearest neighbor search (Beis and Lowe, 1997).
+
+\medskip
+
+Using a distance ratio threshold of 0.49 I obtained 555 matches for
+image pair $(0,1)$ and 467 matches for pair $(1,2)$.
+
+\medskip
+
+The nearest neighbor search is one-way and does not remove duplicate
+matches.  I removed duplicate matches as a post-process.
+
+\medskip
+
+After de-duping I had 547 and 449 unique putative matches for image
+pair $(0,1)$ and $(1,2)$, respectively.
+
+\medskip
+
+I ran the resulting putative matches through OpenCV's implementation
+of RANSAC-based fundamental matrix estimation with a $d_{\perp}$
+threshold of 0.5 pixels and a 99\% confidence interval for the number
+of samples to attempt.
+
+\medskip
+
+The result was 284 inliers for pair $(0,1)$ and 256 inliers for
+pair $(1,2)$.
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+Inliers for pair $(0,1)$:
+
+\medskip
+
+\begin{columns}
+\column{2.25in}
+\myfig{2.2in}{Golf-0from1-corr}{Image 0 matches to image 1}
+\column{2.25in}
+\myfig{2.2in}{Golf-1from0-corr}{Image 1 matches from image 0}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Sparse correspondence with SIFT}
+\framesubtitle{Experiment}
+
+Inliers for pair $(1,2)$:
+
+\medskip
+
+\begin{columns}
+\column{2.25in}
+\myfig{2.2in}{Golf-1from2-corr}{Image 1 matches to image 2}
+\column{2.25in}
+\myfig{2.2in}{Golf-2from1-corr}{Image 2 matches from image 1}
+\end{columns}
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Rectification}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Introduction}
+
+In \alert{dense correspondence estimation}, we like to have our image
+pairs aligned so that the epipolar lines are \alert{aligned with the
+  rows} of the images.
+
+\medskip
+
+We will use the fundamental matrix to obtain a pair of 2D homographies
+\alert{matching the epipolar lines with the image rows} and arranging
+things so that corresponding points have \alert{similar $x$
+  coordinates}.
+
+\medskip
+
+The resulting images can be used for \alert{dense stereo matching}.
+
+\medskip
+
+The homography technique only works \alert{when the epipoles are
+    not inside the image}.
+
+\medskip
+
+When the epipoles are \alert{inside the image} we require more sophisticated
+methods such as \alert{polar rectification} (Pollefeys, ICCV 1999).
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Mapping $\vec{e}$ to infinity}
+
+A main part of the method is to find homography $\mat{H}$
+\alert{mapping the epipole to a point at infinity}.
+
+\medskip
+
+In particular, for the epipolar lines to be aligned with the $x$ axis,
+the epipole should be at $(1,0,0)$.
+
+\medskip
+
+(Recall that for a pure translation the epipoles will be the same
+point in both images.)
+
+\medskip
+
+The constraint that $\mat{H}\vec{e}=(1,0,0)$ will leave us 4 degrees
+of freedom for selecting $\mat{H}$.
+
+\medskip
+
+We will use the remaining degrees of freedom to ensure that the
+original image \alert{looks similar} to the original image.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Mapping $\vec{e}$ to infinity}
+
+Suppose $\vec{x}_0$ be the origin and $\vec{e}=(f,0,1)^T$ is on the
+$x$ axis already.  Then the transformation
+\begin{equation*}
+\mat{G}=\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ -1/f & 0 & 1
+\end{bmatrix}
+\end{equation*}
+will take $\vec{e}$ to $(f,0,0)^T$ as we would like, and an arbitrary
+point $(x,y,1)^T$ is mapped to $(\hat{x},\hat{y},1)^T=(x,y,1-x/f)^T$.
+
+\medskip
+
+For the points ``inside'' the epipole, i.e., $|x/f|<1$, we can write
+the approximation\footnote{The Taylor expansion of $f(x)$ about a
+  point $a$ is $f(a)+f'(a)(x-a)+\frac{f''(a)/2}{(x-a)^2}+\cdots$ so
+  the second-order approximation of $\frac{x}{1-x/f}$ around $x=0$ is
+  $x+x^2/f$.}
+\begin{equation}
+(\hat{x},\hat{y},1)^T=(x,y,1-x/f)^T=(x(1+x/f+\ldots),y(1+x/f+\ldots),1)^T
+\end{equation}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Mapping $\vec{e}$ to infinity}
+
+To understand what $\mat{G}$ is doing, we find the Jacobian
+of the mapping:
+\begin{equation*}
+\frac{\partial(\hat{x},\hat{y})}{\partial(x,y)} =
+\begin{bmatrix} 1+2x/f & 0 \\ y/f & 1+x/f \end{bmatrix}.
+\end{equation*}
+This means that near the origin, where $x=y=0$, we have an
+\alert{identity map}.
+
+\medskip
+
+We can say, then, that $\mat{G}$ maps, to first order, points around
+the origin to the \alert{same points} in the transformed image.
+
+\medskip
+
+If we use $\mat{G}$, then, we want to adjust the origin to be the
+image point where we want \alert{minimal projective distortion}
+(usually the center of the image).
+
+\medskip
+
+For the desired origin $\vec{x}_0$ and epipole $\vec{e}$, then, we want a
+transformation $\vec{H}=\mat{G}\mat{R}\mat{T}$ where $\mat{T}$ takes
+$\vec{x}_0$ to the origin, $\mat{R}$ rotates $\vec{e}$ to $(f,0,1)^T$,
+and $\mat{G}$ takes $(f,0,1)^T$ to infinity.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Matched transformation}
+
+To perform a \alert{corresponding rectifying transform} on a second
+image, consider that we have two images $J$ and $J'$.
+
+\medskip
+
+We need to perform on $J$ a transformation $\mat{H}$ and on $J'$ a
+transformation $\mat{H}'$ so that
+\begin{itemize}
+\item the \alert{epipolar lines are matched},
+\item the center of the image is minimally distorted, and
+\item the \alert{disparity} (motion along the $x$ direction) \alert{is
+    minimized}.
+\end{itemize}
+
+\medskip
+
+To match the epipolar lines, recalling that $\mat{H}^{-T}$ is the line
+map corresponding to a point map $\mat{H}$, we want to enforce
+$\mat{H}^{-T}\vec{l}=\mat{H}^{\prime-T}\vec{l}'.$
+
+\medskip
+
+To minimize disparity, we'll first pick $\mat{H}'$ then try to find a
+$\mat{H}$ minimizing
+\begin{equation*}
+\sum_i d(\mat{H}\vec{x}_i,\mat{H}'\vec{x}_i')^2.
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Matched transformation}
+
+Hartley and Zisserman prove that any $\mat{H}$ and $\mat{H}'$
+minimizing this cost function, for fundamental matrix
+$\mat{F}=\crossmat{\vec{e}'}\mat{M}$, must obey
+\begin{equation*}
+\mat{H}=(\mat{I}+\mat{H}'\vec{e}'\vec{a}^T)\mat{H}'\mat{M}
+\end{equation*}
+for some vector $\vec{a}$.
+
+\medskip
+
+In our case we further impose that $\mat{H}'$ should map $\vec{e}'$ to
+$(1,0,0)^T$, so $\mat{I}+\mat{H}'\vec{e}'\vec{a}^T =
+\mat{I}+(1,0,0)^T\vec{a}^T$ turns out to be
+\begin{equation*}
+\mat{H}_{\text{A}} = \begin{bmatrix} a & b & c \\ 0 & 1 & 0 \\ 0 & 0 &
+1 \end{bmatrix}
+\end{equation*}
+which is an affine transformation.
+
+\medskip
+
+Now we know that given $\mat{H}'$ we must let
+$\mat{H}=\mat{H}_{\text{A}}\mat{H}_0$ where
+$\mat{H}_0=\mat{H}'\mat{M}$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Matched transformation}
+
+OK! So given $\mat{H}'$ mapping $\vec{e}'$ to infinity, we write
+$\hat{\vec{x}}_i'=\mat{H}'\vec{x}'_i$ and
+$\hat{\vec{x}}_i=\mat{H}_0\vec{x}_i$ then find $\mat{H}_{\text{A}}$
+minimizing
+\begin{equation*}
+\sum_i d(\mat{H}_{\text{A}}\hat{\vec{x}}_i,\hat{\vec{x}}'_i)^2
+\end{equation*}
+
+\medskip
+
+To solve this problem, we write
+$\hat{\vec{x}}_i=(\hat{x}_i,\hat{y}_i,1)^T$ and 
+$\hat{\vec{x}}'_i=(\hat{x}'_i,\hat{y}'_i,1)^T$ using matched points
+$\vec{x}_i \leftrightarrow \vec{x}_i'$.  Then the cost function can be
+written
+\begin{equation*}
+\sum_i (a\hat{x}_i+b\hat{y}_i+c-x'_i)^2+(\hat{y}_i-\hat{y}'_i)^2
+\end{equation*}
+but since $\hat{y}_i-\hat{y}_i'$ is constant (the epipolar lines are
+parallel), we just minimize
+\begin{equation*}
+\sum_i (a\hat{x}_i+b\hat{y}_i+c-x'_i)^2
+\end{equation*}
+using standard least-squares estimation.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{The algorithm}
+
+Here's the algorithm summary:
+\begin{block}{Rectification: Objective}
+  Given images $J$ and $J'$, return a resampled pair of images in
+  which the epipolar lines are parallel to the $x$ axis and matched,
+  and the disparity between corresponding points in the resampled
+  images is minimized.
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{The algorithm}
+
+\begin{block}{Rectification: Algorithm}
+\begin{itemize}
+\item[(i)] Identify corresponding points $\vec{x}_i \leftarrow
+  \vec{x}_i'$.
+\item[(ii)] Compute $\mat{F}$ and extract $\vec{e}$, $\vec{e}'$.
+\item[(iii)] Select $\mat{H}'$ mapping $\vec{e}'$ to $(1,0,0)^T$.
+\item[(iv)] Find $\mat{H}$ minimizing
+\begin{equation*}
+\sum_i d(\mat{H}\vec{x}_i,\mat{H}'\vec{x}_i')^2
+\end{equation*}
+\item[(v)] Resample $J$ according to $\mat{H}$ and $J'$ according to
+$\mat{H}'$.
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Example rectification}
+
+\begin{columns}
+\column{2in}
+\myfig{1.65in}{HZ-fig10-11a}{Image $J$}
+
+\vspace{0.05in}
+
+\myfig{1.65in}{HZ-fig10-11c}{$J$ resampled by $\mat{H}$}
+
+\column{2in}
+\myfig{1.65in}{HZ-fig10-11b}{Image $J'$}
+
+\vspace{0.05in}
+
+\myfig{1.65in}{HZ-fig10-11d}{$J'$ resampled by $\mat{H}'$}
+\end{columns}
+
+\vspace{0.1in}
+
+\centerline{\scriptsize Hartley and Zisserman (2004), Fig.\ 11.11}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Example rectification}
+
+Here is another example from, my desk:
+
+\medskip
+
+\begin{columns}
+\column{2.2in}
+\myfig{2in}{desk1}{}
+\column{2.2in}
+\myfig{2in}{desk2}{}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Example rectification}
+
+First I ran Rob Hess' SIFT code to get 1106 and 999 features in image
+1 and 2, respectively:
+
+\medskip
+
+\begin{columns}
+\column{2.2in}
+\myfig{2in}{desk1-sift}{}
+\column{2.2in}
+\myfig{2in}{desk2-sift}{}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Example rectification}
+
+Then I used Rob Hess' implementation of Beis and Lowe's Best Bin First
+approximate nearest neighbor matching and OpenCV's
+\texttt{cvFindFundamentalMat()} with option \texttt{CV\_FM\_RANSAC} to
+estimate $\mat{F}$ and obtain correspondences:
+
+\medskip
+
+\myfig{2in}{desk2-from1-corr}{}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Rectification}
+\framesubtitle{Example rectification}
+
+Then I used Hartley's minimum-distortion homography technique to
+obtain rectifying homographies and applied them to the images:
+
+\medskip
+
+\begin{columns}
+\column{1.9in}
+\myfig{1.8in}{desk1_rect}{}
+\column{2.6in}
+\myfig{2.5in}{desk2_rect}{}
+\end{columns}
+
+\medskip
+
+These images are now ready for dense stereo matching.
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Structure computation}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Introduction}
+
+How can we compute the \alert{position of a point in 3 space} given
+two views?
+
+\medskip
+
+We'll assume we have a \alert{perfect} estimate of $\mat{F}$ (and
+therefore $\mat{P}$ and $\mat{P}'$, up to some ambiguity).
+
+\medskip
+
+We will
+\begin{itemize}
+\item Derive a simple linear solution
+\item Consider some limitations of the linear solution
+\item Define a cost function for an optimal reconstruction
+\item Discuss algorithms for minimizing that cost function
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{The point reconstruction problem}
+
+Backprojection for two corresponding points $\vec{x} \leftrightarrow
+\vec{x}'$ doesn't work because with image measurement error, the
+backprojected rays will be \alert{skew}:
+
+\medskip
+
+\myfig{3in}{HZ-fig11-1a}{Hartley and Zisserman (2004), Fig.\ 12.1a}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{The point reconstruction problem}
+
+Skew is due to the fact that in general, corresponding points
+$\vec{x}$ and $\vec{x}'$ will \alert{not exactly satisfy} the epipolar
+constraint $\vec{x}^{\prime T}\mat{F}\vec{x}=0$:
+
+\medskip
+
+\myfig{4.5in}{HZ-fig11-1b}{Hartley and Zisserman (2004), Fig.\ 12.1b}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Invariance of the solution}
+
+What \alert{properties} would we like our reconstruction to have?
+
+\medskip
+
+Let's call our triangulation method $\tau$:
+\begin{equation*}
+\vec{X} = \tau( \vec{x}, \vec{x}', \mat{P}, \mat{P}' ).
+\end{equation*}
+
+\medskip
+
+We would like $\tau$ to be \alert{invariant under projective
+  transformations} $\mat{H}$:
+\begin{equation*}
+\tau( \vec{x}, \vec{x}', \mat{P}, \mat{P}' ) = \mat{H}^{-1}
+\tau( \vec{x}, \vec{x}', \mat{P}\mat{H}^{-1}, \mat{P}'\mat{H}^{-1} )
+\end{equation*}
+
+\medskip
+
+If we adopt this goal, minimizing error in $\Pset^3$ will not work
+because \alert{distance} and \alert{perpendicularity} relationships
+are \alert{not invariant} in $\Pset^3$.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Maximum likelihood solution}
+
+Instead of minimizing error in $\Pset^3$, we would like instead to
+estimate a 3D point $\hat{\vec{X}}$ exactly satisfying
+\begin{equation*}
+\hat{\vec{x}}=\mat{P}\hat{\vec{X}} \hspace{0.2in}
+\hat{\vec{x}}'=\mat{P}'\hat{\vec{X}}
+\end{equation*}
+and maximizing the likelihood of the measurements under Gaussian
+error.
+
+\medskip
+
+As usual, the maximum likelihood estimate under Gaussian errors
+minimizes \alert{reprojection error}.
+
+\medskip
+
+Since reprojection error only measures distance in the \alert{image},
+the ML estimate will be \alert{invariant} under projective
+transformations of 3-space.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{DLT-style linear solution}
+
+First we'll consider a simple \alert{linear} estimate minimizing
+algebraic error similar to the DLT that is not optimal.
+
+\medskip
+
+We use the cross product to eliminate the homogeneous scale factor.
+For each image we have $\vec{x} \times (\mat{P}\vec{X})=\vec{0}$
+giving
+\begin{equation*}
+\vec{x} \times (\mat{P}\vec{X}) =
+\begin{pmatrix}
+x(\vec{p}^{3 T}\vec{X})-(\vec{p}^{1 T}\vec{X}) \\
+y(\vec{p}^{3 T}\vec{X})-(\vec{p}^{2 T}\vec{X}) \\
+x(\vec{p}^{2 T}\vec{X})-y(\vec{p}^{1 T}\vec{X})
+\end{pmatrix}
+= \vec{0}.
+\end{equation*}
+
+Taking two linearly independent equations from each camera we obtain
+the system $\mat{A}\vec{X}=\vec{0}$ with
+\begin{equation*}
+\mat{A} =
+\begin{bmatrix}
+x\vec{p}^{3 T}-\vec{p}^{1 T} \\
+y\vec{p}^{3 T}-\vec{p}^{2 T} \\
+x'\vec{p}^{\prime 3 T}-\vec{p}^{\prime 1 T} \\
+y'\vec{p}^{\prime 3 T}-\vec{p}^{\prime 2 T}
+\end{bmatrix}
+\end{equation*}
+
+We have 4 equations in 4 homogeneous unknowns.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{DLT-style linear solution}
+
+As always, the solution to the homogeneous linear system is the
+\alert{last right singular} vector of $\mat{A}$.
+
+\medskip
+
+If $\vec{X}$ is known not to be close to the principal plane, we can
+force the last element of $\vec{X}$ to 1, obtaining an inhomogeneous
+linear system with 4 equations in 3 unknowns that can be solved using
+the \alert{pseudoinverse} of $\mat{A}$.
+
+\medskip
+
+In terms of invariance, \alert{neither method} is invariant under
+\alert{arbitrary} projective transformations.
+
+\medskip
+
+The inhomogeneous method but not the homogeneous method is invariant
+under affine transformations.
+
+\medskip
+
+Nevertheless, in many cases the homogeneous method works just fine,
+and importantly, it \alert{generalizes} to the situation where there
+are \alert{more than two views}.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Maximum likelihood estimate}
+
+Under a Gaussian error assumption, the maximum likelihood estimate
+$\hat{\vec{X}}$ of $\vec{X}$ minimizes the \alert{reprojection error}
+\begin{equation*}
+{\cal C}(\vec{x},\vec{x}')=d(\vec{x},\hat{\vec{x}})^2 +
+d(\vec{x}',\hat{\vec{x}}')^2 \hspace{0.2in} \text{subject to\ }
+\hat{\vec{x}}^{\prime T}\mat{F}\hat{\vec{x}}=0.
+\end{equation*}
+
+\myfig{3in}{HZ-fig11-2}{Hartley and Zisserman (2004), Fig.\ 11.2}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Maximum likelihood estimate}
+
+To find $\hat{\vec{X}}$, we \alert{could} use Levenberg-Marquardt
+beginning from the DLT estimate of $\vec{X}$.
+
+\medskip
+
+We could also minimize \alert{Sampson error}, which is a first-order
+approximation to reprojection error, or obtain an \alert{optimal}
+estimate using a fairly complex but analytical algorithm.  See the
+text.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Estimation error}
+
+Intuitively, as noise in the image measurements increases, so does the
+expected error in the reconstruction:
+
+\medskip
+
+\myfig{4.5in}{HZ-fig11-6}{Hartley and Zisserman, Fig.\ 12.6}
+
+\medskip
+
+An estimate of the expected error covariance for a reconstructed point
+can be obtained using the methods of Hartley and Zisserman, Chapter 5.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure computation}
+\framesubtitle{Line estimation}
+
+\alert{Lines} can also be reconstructed from two views except for the
+degeneracy involved when they intersect or nearly intersect the
+epipoles, i.e., lie on an epipolar plane.
+
+\medskip
+
+\myfig{3in}{HZ-fig11-7}{Hartley and Zisserman, Fig.\ 12.7}
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Conclusion}
+\framesubtitle{Three views}
+
+We looked at \alert{two-view} reconstruction in some detail.
+
+\medskip
+
+With \alert{three views}, there are some benefits:
+\begin{itemize}
+\item Given point correspondences in two images, the
+  image of the point in the third is determined \alert{exactly}
+\item The same holds for lines.  Additionally, three views of a line
+  give us an \alert{overdetermined} solution allowing us to minimize
+  over measurement errors.
+\item There is a 3-view generalization of the fundamental matrix
+  called the trifocoal tensor.
+\end{itemize}
+
+\medskip
+
+Next we'll cover 3-view geometry then $N$-view reconstruction.
+
+\end{frame}
+
+\end{document}
+

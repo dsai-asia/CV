@@ -1,0 +1,3 @@
+/home/mdailey/Talks/Promo/2018-WinterSchool/facedetect/build/CMakeFiles/edit_cache.dir
+/home/mdailey/Talks/Promo/2018-WinterSchool/facedetect/build/CMakeFiles/rebuild_cache.dir
+/home/mdailey/Talks/Promo/2018-WinterSchool/facedetect/build/CMakeFiles/facedetect.dir

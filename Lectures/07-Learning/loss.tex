@@ -1,0 +1,79 @@
+\documentclass{article}
+
+\usepackage{a4,url,hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[parfill]{parskip}
+\usepackage{graphicx}
+
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{0in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\footskip}{0.5in}
+
+\newcommand{\trans}{\intercal}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\mathtt{#1}}
+\newcommand{\ten}[1]{\mathcal{#1}}
+\newcommand{\crossmat}[1]{\begin{bmatrix} #1 \end{bmatrix}_{\times}}
+%\renewcommand{\null}[1]{\cal{N}(#1)}
+\newcommand{\class}[1]{\cal{C}_{#1}}
+\def\Rset{\mathbb{R}}
+\def\Pset{\mathbb{P}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\sign}{sign}
+\def\norm{\mbox{$\cal{N}$}}
+
+%\newcommand{\stereotype}[1]{\guillemotleft{{#1}}\guillemotright} 
+
+\title{Explanation of Loss Minimizing Probabilistic Classifier}
+
+\author{Matthew Dailey}
+
+\begin{document}
+
+\maketitle
+
+By the minimum risk principle, we want to minimize, for all
+classification strategies $s$, the expected loss
+\[ R(s) = P(1 \rightarrow 2 \mid \text{using $s$})L(1 \rightarrow 2) +
+          P(2 \rightarrow 1 \mid \text{using $s$})L(2 \rightarrow 1). \]
+If we are using a probabilistic classifier, we define a feature vector
+$\vec{x}$ and build estimators for $P(1 \mid \vec{x})$ and
+$P(2 \mid \vec{x})$, and our strategy is
+\[ s(\vec{x} ; \Theta) \equiv y(\vec{x}) = \begin{cases}
+  1 & \text{if $P(1 \mid \vec{x}) / P(2 \mid \vec{x}) > \Theta$}, \\
+  2 & \text{otherwise}.
+\end{cases} \]
+In this case our risk function becomes
+\[ R(s) = P(y(\vec{x}) = \text{2 when $\vec{x}$ is 1})
+               L(1 \rightarrow 2) +
+               P(y(\vec{x}) = \text{1 when $\vec{x}$ is 2})
+               L(2 \rightarrow 1).
+\]
+For a particular $\vec{x}$, we will always answer with the same class based
+on our estimates of
+$P(1 \mid \vec{x})$ and $P(2 \mid \vec{x})$.
+If we choose class 1, we incur a loss of
+\[ P(2 \mid \vec{x}) L(2 \rightarrow 1),\] and if we choose class 2, we
+incur a loss of
+\[P(1 \mid \vec{x}) L(1 \rightarrow 2).\]
+We should make the decision 
+that minimizes the loss, i.e., choose 1 if 
+\[P(2 \mid \vec{x}) L(2 \rightarrow 1) < P(1 \mid \vec{x}) L(1 \rightarrow 2),\]
+or, correspondingly, if 
+\[P(1 \mid \vec{x}) / P(2 \mid \vec{x}) >
+L(2 \rightarrow 1) / L(1 \rightarrow 2).\]
+This means that our threshold should be set as
+\[ \Theta = L(2 \rightarrow 1) / L(1 \rightarrow 2).\]
+Note that $s$ is optimal if our model $P(1 \mid \vec{x})$ is exact, but
+in practice, the best we can obtain is an approximation based on observation
+of historical data.
+
+\end{document}
+

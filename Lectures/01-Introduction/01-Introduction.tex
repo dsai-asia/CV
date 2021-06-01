@@ -1,0 +1,182 @@
+\documentclass[aspectratio=169]{beamer}
+
+\mode<presentation>
+{
+  \setbeamertemplate{background canvas}[square]
+  \pgfdeclareimage[width=6em,interpolate=true]{dsailogo}{../dsai-logo}
+  \pgfdeclareimage[width=6em,interpolate=true]{erasmuslogo}{../erasmus-logo}
+  \titlegraphic{\pgfuseimage{dsailogo} \hspace{0.2in} \pgfuseimage{erasmuslogo}}
+  %\usetheme{default}
+  \usetheme{Madrid}
+  \usecolortheme{rose}
+  \usefonttheme[onlysmall]{structurebold}
+}
+
+\usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
+\usepackage{amsmath,amssymb}
+\usepackage{graphics}
+\usepackage{ragged2e}
+\usepackage[latin1]{inputenc}
+\usepackage{colortbl}
+\usepackage[absolute,overlay]{textpos}
+\setlength{\TPHorizModule}{30mm}
+\setlength{\TPVertModule}{\TPHorizModule}
+\textblockorigin{10mm}{10mm}
+\usepackage[english]{babel}
+\setbeamercovered{dynamic}
+
+\AtBeginSection[]{
+  \begin{frame}<beamer>
+  \frametitle{Outline}
+  \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\title[Computer Vision]{Computer Vision\\Introduction}
+\author{dsai.asia}
+\institute[]{Asia Data Science and Artificial Intelligence Master's Program}
+\date{}
+
+% My math definitions
+
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\mathtt{#1}}
+\renewcommand{\null}[1]{{\cal N}(#1)}
+\def\Rset{\mathbb{R}}
+\def\Pset{\mathbb{P}}
+\def\norm{\mbox{$\cal{N}$}}
+\newcommand{\crossmat}[1]{\begin{bmatrix} #1 \end{bmatrix}_{\times}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\sign}{sign}
+\DeclareMathOperator*{\trace}{trace}
+
+\newcommand{\stereotype}[1]{\guillemotleft{{#1}}\guillemotright}
+
+\newcommand{\myfig}[3]{\centerline{\includegraphics[width={#1}]{{#2}}}
+    \centerline{\scriptsize #3}}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%             CONTENTS START HERE
+
+%\setbeamertemplate{navigation symbols}{}
+
+\frame{\titlepage}
+
+%--------------------------------------------------------------------
+%\part<presentation>{Part name}
+%
+%\frame{\partpage}
+
+\begin{frame}
+\frametitle{Readings}
+
+Readings for these lecture notes:
+\begin{itemize}
+\item[-] Szeliski, R. \textit{Computer Vision: Algorithms and Applications},
+    2nd ed., \url{https://szeliski.org/Book}, 2021.
+\end{itemize}
+
+\medskip
+
+These notes contain material $\copyright$ Hartley and Zisserman
+(2004) and Szeliski (2021).
+
+\end{frame}
+
+%--------------------------------------------------------------------
+\section{Introduction}
+%--------------------------------------------------------------------
+
+\begin{frame}
+\frametitle{Introduction}
+\framesubtitle{Vision systems}
+
+\myfig{3.5in}{vision-system}{}
+
+The kind of information we want is application specific:
+
+\begin{columns}
+\column{2in}
+\begin{itemize}
+\item 3D models
+\item Object categories
+\end{itemize}
+\column{2in}
+\begin{itemize}
+\item Object poses
+\item Camera poses
+\end{itemize}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Introduction}
+\framesubtitle{Applications}
+
+Important applications include:
+\begin{itemize}
+\item Mobile robot navigation
+\item Industrial inspection and control
+\item Military intelligence
+\item Security
+\item Human-computer interaction
+\item Image retrieval from digital libraries
+\item Medical image analysis
+\item 3D model capture for visualization and animation
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Introduction}
+\framesubtitle{Parts of the system}
+
+The ``vision system'' includes:
+\begin{itemize}
+\item Image \alert{acquisition} hardware
+  \begin{itemize}
+  \item Analog camera plus digital frame grabber, -or-
+  \item Digital camera with a fast serial interface (Firewire, USB,
+    etc.)
+  \end{itemize}
+\item Image processing \alert{support software}
+\item Your computer vision \alert{algorithms}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Introduction}
+\framesubtitle{This summer}
+
+This semester we focus on algorithms for
+\begin{itemize}
+\item 3D reconstruction
+\item Learning (object detection and recognition)
+\item Sequential state estimation (e.g.\ tracking, SLAM)
+\end{itemize}
+
+\medskip
+
+To understand modern 3D reconstruction techniques we need to
+understand how \alert{cameras} transduce the \alert{world} into
+\alert{images}.
+
+\medskip
+
+This involves understanding \alert{projective geometry} and
+\alert{camera models}.
+
+\medskip
+
+Then we can begin to figure out how to invert what the camera does, or
+\alert{reconstruct the 3D scene}.
+
+\end{frame}
+
+\end{document}
+

@@ -1,0 +1,4 @@
+\babel@toc {english}{}
+\beamer@sectionintoc {1}{2D projective geometry}{3}{0}{1}
+\beamer@sectionintoc {2}{3D projective geometry}{28}{0}{2}
+\beamer@sectionintoc {3}{Rigid (Euclidean) transformations}{54}{0}{3}
