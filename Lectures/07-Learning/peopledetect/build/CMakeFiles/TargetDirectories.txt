@@ -1,3 +1,0 @@
-/home/mdailey/Class/Vision/Lectures/06-Learning/peopledetect/build/CMakeFiles/rebuild_cache.dir
-/home/mdailey/Class/Vision/Lectures/06-Learning/peopledetect/build/CMakeFiles/peopledetect.dir
-/home/mdailey/Class/Vision/Lectures/06-Learning/peopledetect/build/CMakeFiles/edit_cache.dir
