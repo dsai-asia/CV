@@ -1,9 +1,0 @@
-\babel@toc {english}{}
-\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
-\beamer@sectionintoc {2}{Epipolar geometry and the fundamental matrix}{5}{0}{2}
-\beamer@sectionintoc {3}{3D reconstruction overview}{31}{0}{3}
-\beamer@sectionintoc {4}{Computation of $\mathtt {F}$}{41}{0}{4}
-\beamer@sectionintoc {5}{Sparse correspondence with SIFT}{63}{0}{5}
-\beamer@sectionintoc {6}{Rectification}{81}{0}{6}
-\beamer@sectionintoc {7}{Structure computation}{96}{0}{7}
-\beamer@sectionintoc {8}{Conclusion}{108}{0}{8}

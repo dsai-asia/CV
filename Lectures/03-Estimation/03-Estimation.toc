@@ -1,9 +1,0 @@
-\babel@toc {english}{}
-\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
-\beamer@sectionintoc {2}{Direct Linear Transform (DLT)}{7}{0}{2}
-\beamer@sectionintoc {3}{Singuar value decomposition (SVD)}{17}{0}{3}
-\beamer@sectionintoc {4}{Cost functions}{23}{0}{4}
-\beamer@sectionintoc {5}{Normalization}{33}{0}{5}
-\beamer@sectionintoc {6}{Iterative minimization}{37}{0}{6}
-\beamer@sectionintoc {7}{Gold Standard algorithm}{53}{0}{7}
-\beamer@sectionintoc {8}{Robust estimation}{57}{0}{8}

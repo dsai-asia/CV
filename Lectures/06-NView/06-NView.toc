@@ -1,6 +1,0 @@
-\babel@toc {english}{}
-\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
-\beamer@sectionintoc {2}{Bundle adjustment}{11}{0}{2}
-\beamer@sectionintoc {3}{Factorization}{15}{0}{3}
-\beamer@sectionintoc {4}{Resectioning}{28}{0}{4}
-\beamer@sectionintoc {5}{Metric upgrade and auto-calibration}{39}{0}{5}
