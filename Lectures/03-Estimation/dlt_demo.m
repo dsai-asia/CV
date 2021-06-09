@@ -13,7 +13,7 @@ function [Htrue, H, Hnorm] = dlt_demo
 % the function calls to get it running on Matlab.  Mostly just the plot
 % functions and the random number generator seed functions.
 
-% Matt Dailey, June 2007
+% Matt Dailey
 
 % Initalize the random number generator with a fixed seed to get
 % repeatable results.  This is for Octave; see "help rand" for
