@@ -166,10 +166,12 @@ function H = rand_homography( x, w, h )
   H = rand( 3, 3 );
 
   % Make sure it's not too much perspective warping
+  % by ensuring that h_31 and h_32 are not too large
+  % (they will be 0 for an affine transformation).
 
   H = H / H(3,3);
   if norm( H(3,1:2) ) > 0.01
-    %H(3,1:2) = H(3,1:2) / norm( H(3,1:2) ) * 0.01;  % Comment this out for fun
+    H(3,1:2) = H(3,1:2) / norm( H(3,1:2) ) * 0.01;  % Comment this out for fun
   end; 
 
   % Figure out where that takes our points x
