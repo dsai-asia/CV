@@ -425,7 +425,7 @@ $\vec{\mu}_{t+1} = \mat{F} \vec{\mu}_t + \mat{K}_{t+1} ( \vec{z}_{t+1}
 \end{block}
 
 \begin{block}{Update of the covariance}
-$\mat{\Sigma}_{t+1} = ( \mat{I} - \mat{K}_{t+1} ) ( \mat{F}
+$\mat{\Sigma}_{t+1} = ( \mat{I} - \mat{K}_{t+1} \mat{H}) ( \mat{F}
 \mat{\Sigma}_t \mat{F}^T + \mat{\Sigma}_x )$
 \end{block}
 
