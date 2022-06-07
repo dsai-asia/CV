@@ -1518,7 +1518,7 @@ Some important properties of rotation matrices:
 \frametitle{Rigid (Euclidean) transformations}
 \framesubtitle{Simple rotation matrices}
 
-Here are the simple rotation matrices:
+Here are the simple rotation matrices for \alert{points}:
 
 \medskip
 
@@ -1536,9 +1536,9 @@ Rotation of $\alpha$ around $\vec{i}$:
 Rotation of $\beta$ around $\vec{j}$:
 \begin{equation*}
 \begin{bmatrix}
-\cos \beta & 0 & -\sin \beta \\
+\cos \beta & 0 & \sin \beta \\
 0 & 1 & 0 \\
-\sin \beta & 0 & \cos \beta
+-\sin \beta & 0 & \cos \beta
 \end{bmatrix}
 \end{equation*}
 \column{1.5in}
@@ -1552,6 +1552,43 @@ Rotation of $\gamma$ around $\vec{k}$:
 \end{equation*}
 \end{columns}
 
+\medskip
+
+In robotics, it is more common to express rotations as being applied to the
+\alert{coordinate frame} rather than points. A frame rotation by angle
+$\alpha$ is equivalent to a point rotation by angle $-\alpha$:
+
+\medskip
+
+\begin{columns}
+\column{1.5in}
+Rotation of $\alpha$ around $\vec{i}$:
+\begin{equation*}
+\begin{bmatrix}
+1 & 0 & 0 \\
+0 & \cos \alpha & -\sin \alpha \\
+0 & \sin \alpha & \cos \alpha
+\end{bmatrix}
+\end{equation*}
+\column{1.5in}
+Rotation of $\beta$ around $\vec{j}$:
+\begin{equation*}
+\begin{bmatrix}
+\cos \beta & 0 & -\sin \beta \\
+0 & 1 & 0 \\
+\sin \beta & 0 & \cos \beta
+\end{bmatrix}
+\end{equation*}
+\column{1.5in}
+Rotation of $\gamma$ around $\vec{k}$:
+\begin{equation*}
+\begin{bmatrix}
+\cos \gamma & -\sin \gamma & 0 \\
+\sin \gamma & \cos \gamma & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation*}
+\end{columns}
 \end{frame}
 
 
