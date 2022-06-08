@@ -1455,7 +1455,8 @@ of the origin of frame $A$ in frame $B$.
 \medskip
 
 If $\vec{X}$ and $\vec{X}'$ are represented in homogeneous
-coordinates, we write
+coordinates, we write the combination of rotation and translation
+as a 3D homography or \alert{homogeneous transformation}
 \begin{equation*}
 \vec{X}' = \mat{H} \vec{X} =
  \begin{bmatrix} \mat{R}_{A/B} & \vec{O}_{A/B} \\ \vec{0}^T & 1
@@ -1489,6 +1490,13 @@ The rotation $\mat{R}_{A/B}$ of a point from frame $A =
 
 The \alert{columns} of $\mat{R}$ are the projections of the basis
 vectors for $A$ onto the basis vectors for $B$.
+
+\medskip
+
+The representation of the origin $O_A$ in frame $B$, denoted $O_{A/B}$,
+can be written
+\[ \begin{bmatrix} \vec{i}_B & \vec{j}_B & \vec{k}_B \end{bmatrix}^T (O_A-O_B). \]
+
 
 \end{frame}
 
